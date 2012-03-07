@@ -1,0 +1,30 @@
+#<PrintWriter java.io.PrintWriter@f1abb1c>
+irc=> :nakkaya!nakkaya@li323-207.members.linode.com JOIN :#room)
+:flounder.dyndns.org 353 nakkaya = #room) :@nakkaya
+:flounder.dyndns.org 366 nakkaya #room) :End of /NAMES list.
+(write irc "JOIN #room")
+#<PrintWriter java.io.PrintWriter@f1abb1c>
+irc=> :nakkaya!nakkaya@li323-207.members.linode.com JOIN :#room
+:flounder.dyndns.org 332 nakkaya #room :HELLS BELLS TRUDY
+:flounder.dyndns.org 333 nakkaya #room grog!metellus@127.0.0.1 1330793034
+:flounder.dyndns.org 353 nakkaya * #room :nakkaya bigs +krvn paxl mv pmcq grog
+:flounder.dyndns.org 366 nakkaya #room :End of /NAMES list.
+(write irc "#room omg wat")
+#<PrintWriter java.io.PrintWriter@f1abb1c>
+irc=> :flounder.dyndns.org 421 nakkaya #ROOM :Unknown command
+(write irc "PRIVMSG :#room omg wat")
+#<PrintWriter java.io.PrintWriter@f1abb1c>
+:flounder.dyndns.org 461 nakkaya PRIVMSG :Not enough parameters.
+irc=> (write irc "PRIVMSG #room omg wat")
+#<PrintWriter java.io.PrintWriter@f1abb1c>
+irc=> (write irc "PRIVMSG #room who am i")
+#<PrintWriter java.io.PrintWriter@f1abb1c>
+irc=> (write irc "PRIVMSG #room sup")
+#<PrintWriter java.io.PrintWriter@f1abb1c>
+irc=> :grog!metellus@127.0.0.1 PRIVMSG #room :test
+(write irc "PRIVMSG #room clojure repl irc client right here")
+#<PrintWriter java.io.PrintWriter@f1abb1c>
+irc=> (write irc "quit")
+#<PrintWriter java.io.PrintWriter@f1abb1c>
+irc=> ERROR :Closing link: (nakkaya@li323-207.members.linode.com) [Client exited]
+nil
