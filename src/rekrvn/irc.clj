@@ -5,13 +5,6 @@
 
 (declare conn-handler)
 
-(def registered (ref false))
-
-(defn write [conn msg]
-  (doto (:out @conn)
-       (.println (str msg "\r"))
-       (.flush)))
-
 (defn connect [server]
   (let [socket (Socket. (:server server) (:port server))
         in (BufferedReader. (InputStreamReader. (.getInputStream socket)))
@@ -20,49 +13,59 @@
     (doto (Thread. #(conn-handler conn server)) (.start))
     conn))
 
-(defn joinChan [conn channel]
-  (do
-    (while (not @registered) (Thread/sleep 500))
-    (write conn (str "JOIN " channel))))
-
-(defn partChan [conn channel]
-  (write conn (str "PART " channel)))
-
-(defn message [conn channel msg]
-  (do
-    (while (not @registered) (Thread/sleep 500))
-    (write conn (str "PRIVMSG " channel " :" msg))))
-
-(defn quit [conn]
-  (write conn "QUIT"))
-
 (defn conn-handler [conn server]
-  
-  ;; register with server
-  (write conn (str "NICK " (:nick server)))
-  (write conn (str "USER " (:nick server) " 0 * :" (:name server)))
+  ;; message queue
+  (let [queue (ref [])
+        queueMsg (fn [msg] (dosync (alter queue conj msg)))
+        ;; irc commands
+        write (fn [msg] (doto (:out @conn)
+                          (.println (str msg "\r"))
+                          (.flush)))
 
-  ;; loop until registered
-  (while (not @registered)
-    (nil? (:exit @conn))
-    (let [msg (.readLine (:in @conn))]
-      (when (not (nil? (re-find (re-pattern (str "^:\\S+ \\d\\d\\d " (:nick server) " :")) msg)))
-        ;; example successful string: ":flounder.dyndns.org 003 test :This server was created 15:50:17 Nov  4 2011"
-        (dosync (ref-set registered true)))))
+        joinChan (fn [channel] (queueMsg (str "JOIN " channel)))
+        partChan (fn [channel] (queueMsg (str "PART " channel)))
+        message (fn [recipient msg] (queueMsg (str "PRIVMSG " recipient " :" msg)))
+        quit (fn [] (queueMsg "QUIT"))]
 
-  ;; handle messages normally
-  (while
-    (nil? (:exit @conn))
-    (let [msg (.readLine (:in @conn))]
-      (cond
-        ;;(re-(re-pattern (str ":(.+) \\d\\d\\d " (:nick user)))
-        (re-find #"^ERROR :Closing Link:" msg) 
-          (dosync (alter conn merge {:exit true}))
-        (re-find #"^PING" msg)
-          (write conn (str "PONG "  (re-find #":.*" msg)))
-        (re-find #"!quit" msg)
-            (quit conn)
-        ;; (re-matches #"https?://twitter.com/#!/(.+)/status/(\d+)/?" msg)
-        ;;   (message conn "#room" "handler code goes here")
-      ))))
+    ;; register with server
+    (write (str "NICK " (:nick server)))
+    (write (str "USER " (:nick server) " 0 * :" (:name server)))
+
+
+    ;; test the queue
+    (joinChan "#urkl")
+    ;; end of testing
+
+    ;; loop until registered
+    (let [accPattern (re-pattern (str "^:\\S+ \\d\\d\\d " (:nick server) " :"))]
+      (while (nil? (re-find accPattern (.readLine (:in @conn))))
+        ))
+    ;; example successful string: ":flounder.dyndns.org 003 test :This Nov  4 2011"
+
+    ;; handle messages normally
+    (while
+      (nil? (:exit @conn))
+      (if (.ready (:in @conn))
+        (let [msg (.readLine (:in @conn))]
+          (println msg)
+          (cond
+            (re-find #"^ERROR :Closing Link:" msg) 
+            (dosync (alter conn merge {:exit true}))
+
+            (re-find #"^PING" msg)
+            (write (str "PONG "  (re-find #":.*" msg)))
+
+            (re-find #"!quit" msg)
+            (quit)
+
+            ;; (re-matches #"https?://twitter.com/#!/(.+)/status/(\d+)/?" msg)
+            ;;   (message conn "#room" "handler code goes here")
+            )))
+      (if (not-empty @queue)
+        (dosync (let [msg (first @queue)]
+                  (write msg))
+          (alter queue rest)))
+      (Thread/sleep 100)
+      ))
+  )
 

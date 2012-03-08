@@ -1,0 +1,2 @@
+for login/auth: write line, read response, handle errors
+write basic irc triggers (join part nick disconnect)
