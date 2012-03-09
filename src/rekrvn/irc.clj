@@ -40,8 +40,9 @@
     (write (str "USER " (:nick server) " 0 * :" (:name server)))
 
 
+    (pmap joinChan (:channels server))
     ;; test the queue
-    (joinChan "#test")
+    
     ;; end of testing
 
 

@@ -1,7 +1,8 @@
 (ns rekrvn.core
   (:use rekrvn.irc))
 
-(def servers [{:server "flounder.dyndns.org" :port 6998 :nick "mimk" :name "kruvina gloster"}
+(def servers [{:server "flounder.dyndns.org" :port 6998 :nick "mmic" :name "botty bots"
+               :channels '("#test" "#urkl")}
               ;;{:server "flounder.dyndns.org" :port 6998 :nick "t2st" :name "mrs. bottersworth"}
               ])
 
