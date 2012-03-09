@@ -7,9 +7,9 @@
 
 (def triggers (ref []))
 
-(defn addTrigger [tID pattern action]
+(defn addTrigger [t]
   (dosync
-    (alter triggers conj {:id tID :trigger pattern :f action}) ))
+    (alter triggers conj t)))
 
 (defn connect [server]
   (let [socket (Socket. (:server server) (:port server))
@@ -41,7 +41,9 @@
 
 
     (pmap joinChan (:channels server))
-    ;; test the queue
+
+
+    ;; testing zone
     
     ;; end of testing
 
@@ -64,9 +66,6 @@
 
             (re-find #"!quit" msg)
             (quit)
-
-            ;; (re-matches #"https?://twitter.com/#!/(.+)/status/(\d+)/?" msg)
-            ;;   (message conn "#room" "handler code goes here")
             )
           (pmap (fn [trig] 
              (let [res (re-find (:trigger trig) msg)

@@ -1,13 +1,15 @@
 # rekrvn
 
-FIXME: write description
+An irc bot with plugin support.
 
 ## Usage
 
-FIXME: write
+List servers to connect and plugins to use in core.clj
+
+Plugins interact with irc by calling (broadcast) or by calling (addTrigger)
 
 ## License
 
-Copyright (C) 2012 FIXME
+Copyright (C) 2012
 
 Distributed under the Eclipse Public License, the same as Clojure.
