@@ -1,6 +1,17 @@
 (ns rekrvn.core
   (:use rekrvn.irc))
 
+(def servers [{:server "flounder.dyndns.org" :port 6998 :nick "mimk" :name "kruvina gloster"}
+              ;;{:server "flounder.dyndns.org" :port 6998 :nick "t2st" :name "mrs. bottersworth"}
+              ])
+
 (defn -main [& args]
-  (let [flounder {:server "flounder.dyndns.org" :port 6998 :nick "test" :name "botty botson"}
-        irc (connect flounder)]))
+  (addTrigger "mimic" #"^:\S+ PRIVMSG #?\w+ :(.*)" (fn [[full matched] reply]
+                                                     (reply matched)))
+  (addTrigger "twitter"
+              #"https?://.*twitter\.com.*/(.+)/status/(\d+)" (fn [[full username tweet] reply]
+                                                                  (reply (str username " " tweet))))
+
+  ;; server connection must be the last line
+  (map connect servers)
+  )
