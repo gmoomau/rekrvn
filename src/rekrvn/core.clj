@@ -6,10 +6,10 @@
               ])
 
 (defn -main [& args]
-  (addTrigger "mimic" #"^:\S+ PRIVMSG #?\w+ :(.*)" (fn [[full matched] reply]
+  (addTrigger "mimic" #"^:\S+ PRIVMSG #?\w+ :(.*)" (fn [[matched] reply]
                                                      (reply matched)))
   (addTrigger "twitter"
-              #"https?://.*twitter\.com.*/(.+)/status/(\d+)" (fn [[full username tweet] reply]
+              #"https?://.*twitter\.com.*/(.+)/status/(\d+)" (fn [[username tweet] reply]
                                                                   (reply (str username " " tweet))))
 
   ;; server connection must be the last line

@@ -68,9 +68,10 @@
             ;;   (message conn "#room" "handler code goes here")
             )
           (pmap (fn [trig] 
-             (let [res (re-find (:trigger trig) msg)]
+             (let [res (re-find (:trigger trig) msg)
+                   recip (re-find #"^:\S+ PRIVMSG (\S+) :" msg)]
                (when res
-                 ((:f trig) res (partial message "#test")))))
+                 ((:f trig) (rest res) (partial message (second recip))))))
              @triggers)
              ))
         (when (and @registered (not-empty @queue))
