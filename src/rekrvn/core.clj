@@ -3,8 +3,8 @@
   (:import (java.io File))
   )
 
-(def baseDir "/home/grog/rekrvn/src/rekrvn")
-(def modDir "modules/")
+(def baseDir "/home/grog/rekrvn/src")
+(def modDir "rekrvn/modules/")
 (def modCleanup (ref {})) ;; maps id->ending function
 (def listeners (ref [])) ;; vec of triggers
 
@@ -39,17 +39,21 @@
     )
   )
 
+(defn initMods []
+  (let [mods (load-file (str baseDir "/rekrvn/config.clj"))]
+    (doall (map
+             (fn [module] (modLoad module))
+             mods))
+    )
+  )
+
 
 (defn -main [& args]
-  (do
-    ;;(println "broadcast 1")
-    ;;(broadcast {:id "asd" :content "d" :replyFn (fn [] (+ 1 2))})
-    (load "rekrvn/config")
-    ;;(modLoad "blah")
-    ;;(println "loaded")
-    ;;(println "broadcast 2")
-    (broadcast {:id "asd" :content ":g!mus@17.0.0.1 PRIVMSG #l :caught by mimic" :replyFn (fn [a] (println a))})
-    (broadcast {:id "asd" :content "https://twitter.com/#!/twurlcatch/status/1972416" :replyFn (fn [a] (println a))})
-    )
+  ;;(do
+  ;;  (load "rekrvn/config")
+  ;;  (let [tmp (load-file (str baseDir "tmp.clj"))]
+  ;;    (println "tmp is" tmp))
+  ;;  )
+  (initMods)
   )
 
