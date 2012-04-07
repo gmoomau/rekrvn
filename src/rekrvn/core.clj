@@ -8,10 +8,11 @@
 (def modCleanup (ref {})) ;; maps id->ending function
 (def listeners (ref [])) ;; vec of triggers
 
-(defn broadcast [{id :id content :content reply :replyFn}]
-  (doall (map (fn [{matchFn :matcher actFn :action}]
-                (let [results (matchFn id content)]
-                  (when results (actFn results reply))))
+;; string content fn reply
+(defn broadcast [content reply]
+  (doall (map (fn [{matcher :matcher actFn :action}]
+                (let [results (re-find matcher content)]
+                  (when results (actFn (rest results) reply))))
               @listeners))
   )
 
@@ -55,5 +56,6 @@
   ;;    (println "tmp is" tmp))
   ;;  )
   (initMods)
+  (println "dir is " (.getCanonicalPath (File. ".")))
   )
 

@@ -70,8 +70,7 @@
             (quit)
             )
           (let [recip (re-find #"PRIVMSG (\S+) :" msg)]
-            (when @registered (rekrvn.core/broadcast {:id "irc" :content msg
-                                                      :replyFn (partial message (second recip))}))
+            (when @registered (rekrvn.core/broadcast (str "irc " msg) (partial message (second recip))))
             )
           ))
       (while (and @registered (not-empty @queue))
