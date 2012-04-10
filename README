@@ -1,15 +1,30 @@
 # rekrvn
 
-An irc bot with plugin support.
+A bot framework with plugins.
 
 ## Usage
 
-List servers to connect and plugins to use in core.clj
+list modules you want enabled in config.clj
+eg. "example" will run modules/example.clj or modules/example/example.clj
 
-Plugins interact with irc by calling (broadcast) or by calling (addTrigger)
+## FOR MODULE AUTHORS
+(:require rekrvn.core)
+
+publish events via (rekrvn.core/broadcast [content replyfn])
+content is a string beginning with a one-word identifier for your module
+replyFn is a function to be used by other modules in order to respond to published events.
+For example, the irc module provides a replyFn that sends message to the channel from which
+the message originated.
+
+subscribe to events/messages via (rekrvn.core/addListener [matcher actFn])
+matcher is an re-pattern to match applicable publications
+actFn is the function to be called on matching publications. As arguments, it takes the
+parenthesized groups in matcher.
+
+See modules.clj for examples.
 
 ## License
 
 Copyright (C) 2012
 
-Distributed under the Eclipse Public License, the same as Clojure.
+License: DWYW
