@@ -21,7 +21,11 @@ matcher is an re-pattern to match applicable publications
 actFn is the function to be called on matching publications. As arguments, it takes the
 parenthesized groups in matcher.
 
-See modules.clj for examples.
+See modules/example.clj for examples.
+
+module reloading
+If a module has connections that need to be closed in a certain way, provide a function
+to do so via (rekrvn.core/addCleanup module cleanupFn)
 
 ## License
 
