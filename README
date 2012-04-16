@@ -22,11 +22,6 @@ actFn is the function to be called on matching publications. As arguments, it ta
 a list containing the parenthesized groups in matcher and a replyFn.
 
 See modules/example.clj for examples.
-
-module reloading
-If a module has connections that need to be closed in a certain way, provide a function
-to do so via (rekrvn.core/addCleanup module cleanupFn)
-
 ## License
 
 Copyright (C) 2012

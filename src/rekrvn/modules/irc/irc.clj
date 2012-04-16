@@ -20,7 +20,10 @@
 (defn partChan [conn channel] (queueMsg conn (str "PART " channel)))
 (defn message [conn recipient msg] (queueMsg conn (str "PRIVMSG " recipient " :" msg)))
 ;; add handling in (message) for when you're not in a channel?
-(defn quit [conn] (queueMsg conn "QUIT"))
+(defn quit [conn]
+  (dosync
+    (alter conn assoc :exit true))
+  )
 
 (defn permits [recip module]
   ;; add handling for no permissions specified
@@ -36,19 +39,12 @@
   ;; for now only support (message), add other stuff later
   (when (and (permits (str network "#" recip) fromModule)
              (contains? @connections network))
-    (println fromModule recip (permits (str network "#" recip) fromModule))
     (message (get @connections network) recip msg)
     ))
 
 (defn shutdown []
-  (do
-    (doall (map (vals connections) quit))
-    (dosync
-      (ref-set servers {})
-      (ref-set connections {})
-      (ref-set modPerms {})
-      (ref-set currentChannels #{}))
-    ))
+  (doall (map quit (vals @connections)))
+  )
 
 (declare conn-handler)
 (defn connect [server]
@@ -66,18 +62,19 @@
         network (:network server)
         write (fn [msg] (doto (:out @conn)
                           (.println (str msg "\r"))
-                          (.flush)))]
+                          (.flush)))
+        register (fn [nick]
+                   (write (str "NICK " nick))
+                   (write (str "USER " nick " 0 * :" (:realname server))))]
     ;; register with server
-    (write (str "NICK " (:nick server)))
-    (write (str "USER " (:nick server) " 0 * :" (:realname server)))
+    (register (:nick server))
 
     (doall (map (partial joinChan conn) (:channels server)))
     ;; testing stuff goes here?
     ;; testing stuff ends here
 
     ;; handle messages
-    (while
-      (nil? (:exit @conn))
+    (while (not (:exit @conn))
       (while (or (not @registered) (.ready (:in @conn)))
         (let [msg (.readLine (:in @conn))]
           (println "fromirc" msg)
@@ -86,10 +83,7 @@
 
           ;; maintaining connection + internal irc state
           (when (re-find #"^ERROR :Closing Link:" msg)
-            (dosync
-              (alter conn merge {:exit true})
-              (alter connections dissoc network)
-              ))
+            (quit conn))
 
           (when (re-find #"^PING" msg)
             (write (str "PONG " (re-find #":.*" msg))))
@@ -117,6 +111,13 @@
         )
       (Thread/sleep 100)
       )
+    ;; only gets here when it receives the exit command
+    (dosync
+      (write "QUIT")
+      (ref-set currentChannels (remove (fn [chan] (re-find (re-pattern (str "^" network "#")) chan)) @currentChannels))
+      (alter connections dissoc network)
+      (println network "gone?")
+      )
     ))
 
 (defn startirc []
@@ -127,6 +128,7 @@
                         ]
                }
               )]
+    ;; above is a dummy data structure. real thing will read from a file
     (doall (map (fn [server]
                   (dosync
                     ;; add server to internal list for some reason
@@ -145,8 +147,6 @@
 
 
 ;; definitions done, actually doing stuff now
-(rekrvn.core/addListener #"^(\S+) forirc (\S+)#(\S+) (.+)" doSomething)
-(rekrvn.core/addCleanup modName shutdown)
+(rekrvn.core/addListener "irc" #"^(\S+) forirc (\S+)#(\S+) (.+)" doSomething)
 ;; read from config file
 (startirc)
-

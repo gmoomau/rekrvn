@@ -6,45 +6,35 @@
 (def baseDir "/home/grog/rekrvn/src")
 (def modDir "rekrvn/modules/")
 (def modCleanup (ref {})) ;; maps id->ending function
-(def listeners (ref [])) ;; vec of triggers
+(def listeners (ref {})) ;; maps id->trigger
 
 ;; string content fn reply
 (defn broadcast [content reply]
   (doall (map (fn [{matcher :matcher actFn :action}]
                 (when-let [results (re-find matcher content)]
                   (actFn (rest results) reply)))
-              @listeners))
+              (vals @listeners)))
   )
 
-(defn addCleanup [modId cleanFn]
-  (dosync
-    (alter modCleanup assoc modId cleanFn)
-    )
-  )
-
-(defn addListener [matcher action]
-  (dosync (alter listeners conj {:matcher matcher :action action}))
+(defn addListener [id matcher action]
+  (dosync (alter listeners assoc id {:matcher matcher :action action}))
   )
 
 (defn modLoad [modId]
   ;; remove existing mod if necessary
-  (let [cleanup (get modCleanup modId)
-        loneFile (str modDir modId)
-        inDir (str modDir modId "/" modId)
+  (let [loneFile (str baseDir "/" modDir modId ".clj")
+        inDir (str baseDir "/" modDir modId "/" modId ".clj")
         ]
-    (when cleanup (cleanup)) ;; call cleanup if it exists
     (cond
-      (.exists (File. baseDir (str loneFile ".clj"))) (load loneFile)
-      (.exists (File. baseDir (str inDir ".clj"))) (load inDir)
+      (.exists (File. loneFile)) (load-file loneFile)
+      (.exists (File. inDir)) (load-file inDir)
       :else (println "No plugin with the name" modId "at" loneFile "or" inDir))
     )
   )
 
 (defn initMods []
   (let [mods (load-file (str baseDir "/rekrvn/config.clj"))]
-    (doall (map
-             (fn [module] (modLoad module))
-             mods))
+    (doall (map modLoad mods))
     )
   )
 
@@ -56,6 +46,4 @@
   ;;    (println "tmp is" tmp))
   ;;  )
   (initMods)
-  (println "dir is " (.getCanonicalPath (File. ".")))
   )
-
