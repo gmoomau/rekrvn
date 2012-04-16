@@ -11,8 +11,8 @@
 ;; string content fn reply
 (defn broadcast [content reply]
   (doall (map (fn [{matcher :matcher actFn :action}]
-                (let [results (re-find matcher content)]
-                  (when results (actFn (rest results) reply))))
+                (when-let [results (re-find matcher content)]
+                  (actFn (rest results) reply)))
               @listeners))
   )
 

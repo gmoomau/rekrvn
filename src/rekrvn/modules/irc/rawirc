@@ -56,3 +56,32 @@ PING :flounder.dyndns.org
 :grog!metellus@127.0.0.1 PRIVMSG #urkl :ACTION wtf how does it knowwwwwww
 :grog!metellus@127.0.0.1 PRIVMSG #urkl :maybe irssi is fuckin' with my text
 
+------------------------------------------------------------------------------------------------
+:flounder.dyndns.org 005 cljr WALLCHOPS WALLVOICES :are supported by this server
+:flounder.dyndns.org 042 cljr 829AAAF2A :your unique ID
+:flounder.dyndns.org 375 cljr :flounder.dyndns.org message of the day
+:flounder.dyndns.org 372 cljr :- Welcome to irc
+:flounder.dyndns.org 372 cljr :-
+:flounder.dyndns.org 376 cljr :End of message of the day.
+:flounder.dyndns.org 251 cljr :There are 2 users and 5 invisible on 1 servers
+:flounder.dyndns.org 252 cljr 1 :operator(s) online
+:flounder.dyndns.org 254 cljr 5 :channels formed
+:flounder.dyndns.org 255 cljr :I have 7 clients and 0 servers
+:flounder.dyndns.org 265 cljr :Current Local Users: 7  Max: 11
+:flounder.dyndns.org 266 cljr :Current Global Users: 7  Max: 11
+:cljr!cljr@li323-207.members.linode.com JOIN :#test
+:flounder.dyndns.org 353 cljr = #test :cljr @grog
+:flounder.dyndns.org 366 cljr #test :End of /NAMES list.
+:grog!metellus@127.0.0.1 PRIVMSG #test :ACTION tests
+:grog!metellus@127.0.0.1 PRIVMSG #test :ACTION tests
+:grog!metellus@127.0.0.1 PRIVMSG #test :HOW DOES THIS VOODOO MAGIC WORK
+:cljr!cljr@li323-207.members.linode.com JOIN :#ftbl
+:flounder.dyndns.org 332 cljr #ftbl :
+:flounder.dyndns.org 333 cljr #ftbl grog!metellus@127.0.0.1 1332717414
+:flounder.dyndns.org 353 cljr = #ftbl :paxl cljr pmcq grog
+:flounder.dyndns.org 366 cljr #ftbl :End of /NAMES list.
+:grog!metellus@127.0.0.1 KICK #ftbl cljr :
+:grog!metellus@127.0.0.1 PRIVMSG #test :weird
+:grog!metellus@127.0.0.1 PRIVMSG #test :!quit
+ERROR :Closing link: (cljr@li323-207.members.linode.com) [Client exited]
+

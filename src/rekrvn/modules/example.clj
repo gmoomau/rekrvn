@@ -3,10 +3,10 @@
   )
 
 (defn mimic [[matched] reply]
-  (reply matched))
+  (reply "mimic" matched))
 (rekrvn.core/addListener #"^irc.*PRIVMSG #\S+ :(.+)" mimic)
 
 (defn twurl [[username tweet] reply]
-  (reply (str username " " tweet)))
+  (reply "twurl" (str username " " tweet)))
 (rekrvn.core/addListener #"^irc.*https?://.*twitter\.com.*/(.+)/status/(\d+)" twurl)
 
