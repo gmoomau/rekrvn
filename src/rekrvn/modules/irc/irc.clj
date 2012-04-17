@@ -35,6 +35,36 @@
       )
     ))
 
+(defn modAllow [network channel module]
+  (let [recip (str network "#" channel)
+        permSet (get @modPerms recip)
+        ]
+    (if permSet
+      (dosync
+        (alter modPerms update-in [recip :whitelist] conj module)
+        (alter modPerms update-in [recip :blacklist] disj module)
+        )
+      (dosync (alter modPerms
+                     assoc recip {:defaultAllow false :blacklist #{} :whitelist #{module}})
+        )
+      )
+    ))
+
+(defn modDeny [network channel module]
+  (let [recip (str network "#" channel)
+        permSet (get @modPerms recip)
+        ]
+    (if permSet
+      (dosync
+        (alter modPerms update-in [recip :blacklist] conj module)
+        (alter modPerms update-in [recip :whitelist] disj module)
+        )
+      (dosync (alter modPerms
+                     assoc recip {:defaultAllow false :whitelist #{} :blacklist #{module}})
+        )
+      )
+    ))
+
 (defn doSomething [[fromModule network recip msg] replyFn]
   ;; for now only support (message), add other stuff later
   (when (and (permits (str network "#" recip) fromModule)
@@ -88,22 +118,33 @@
           (when (re-find #"^PING" msg)
             (write (str "PONG " (re-find #":.*" msg))))
 
-          (when (re-find #"!quit" msg)
-            (quit conn))
-
-          (when-let [joined (re-find (re-pattern (str serverMsg " = (\\S+) :")) msg)]
-            (dosync (alter currentChannels conj (str network "#" (second joined)))))
-          (when-let [kicked (re-find #"\S+ KICK (#\S+) " msg)]
-            ;; rejoin functionality goes here
-            (dosync (alter currentChannels disj (str network "#" (second kicked)))))
-
-          ;; normal chat
-          (when-let [recip (re-find #"PRIVMSG (\S+) :" msg)]
-            (let [reply (fn [modName msg]
-                          (doSomething [modName network (second recip) msg] nil))]
             (when @registered
-              (rekrvn.core/broadcast (str "irc " msg) reply))
-            ))
+              (when (re-find #"!quit" msg)
+                (quit conn))
+
+              ;; channel management
+              (when-let [joined (re-find (re-pattern (str serverMsg " = (\\S+) :")) msg)]
+                (dosync (alter currentChannels conj (str network "#" (second joined)))))
+              (when-let [kicked (re-find #"\S+ KICK (#\S+) " msg)]
+                ;; rejoin functionality goes here
+                (dosync (alter currentChannels disj (str network "#" (second kicked)))))
+
+              ;; module management
+              (when-let [cmd (re-find #"PRIVMSG (\S+) :\.(en)?(dis)?able (\S+)$" msg)]
+                (let [[source enable disable module] (rest cmd)]
+                  (cond
+                    enable (modAllow network source module)
+                    disable (modDeny network source module)
+                    )
+                ))
+
+              ;; normal chat
+              (when-let [recip (re-find #"PRIVMSG (\S+) :" msg)]
+                (let [reply (fn [modName msg]
+                              (doSomething [modName network (second recip) msg] nil))]
+                  (rekrvn.core/broadcast (str "irc " msg) reply))
+                )
+              )
           ))
       (when (and @registered (not-empty (:queue @conn)))
         (doall (map write (:queue @conn)))
@@ -116,15 +157,15 @@
       (write "QUIT")
       (ref-set currentChannels (remove (fn [chan] (re-find (re-pattern (str "^" network "#")) chan)) @currentChannels))
       (alter connections dissoc network)
-      (println network "gone?")
       )
     ))
 
 (defn startirc []
   (let [srv '({:network "flounder" :nick "cljr" :realname "bot" :autoConnect true
                :server "flounder.dyndns.org" :port 6998 :channels ["#test"]
-               :perms [{:channel "#test" :defaultAllow true :whitelist #{"twurl"} :blacklist #{}}
-                       {:channel "#room" :defaultAllow false :whitelist #{}}
+               :perms [{:channel "#test" :defaultAllow true :whitelist #{"twurl"}
+                        :blacklist #{"mimic"}}
+                       {:channel "#room" :defaultAllow false :whitelist #{"spotify"}}
                         ]
                }
               )]

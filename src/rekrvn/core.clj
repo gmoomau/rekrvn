@@ -25,10 +25,13 @@
   (let [loneFile (str baseDir "/" modDir modId ".clj")
         inDir (str baseDir "/" modDir modId "/" modId ".clj")
         ]
-    (cond
-      (.exists (File. loneFile)) (load-file loneFile)
-      (.exists (File. inDir)) (load-file inDir)
-      :else (println "No plugin with the name" modId "at" loneFile "or" inDir))
+    (try
+      (cond
+        (.exists (File. loneFile)) (load-file loneFile)
+        (.exists (File. inDir)) (load-file inDir)
+        :else (println "No plugin with the name" modId "at" loneFile "or" inDir))
+      (catch Exception e (str "Caught exception: " (.getMessage e)))
+      )
     )
   )
 
@@ -40,10 +43,5 @@
 
 
 (defn -main [& args]
-  ;;(do
-  ;;  (load "rekrvn/config")
-  ;;  (let [tmp (load-file (str baseDir "tmp.clj"))]
-  ;;    (println "tmp is" tmp))
-  ;;  )
   (initMods)
   )
