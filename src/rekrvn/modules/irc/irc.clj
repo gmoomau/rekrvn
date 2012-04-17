@@ -165,7 +165,7 @@
                :server "flounder.dyndns.org" :port 6998 :channels ["#test"]
                :perms [{:channel "#test" :defaultAllow true :whitelist #{"twurl"}
                         :blacklist #{"mimic"}}
-                       {:channel "#room" :defaultAllow false :whitelist #{"spotify"}}
+                       {:channel "#room" :defaultAllow false :whitelist #{"spotify" "twurl"}}
                         ]
                }
               )]

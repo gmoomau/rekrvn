@@ -5,5 +5,6 @@
  "irc"
  "irc/module_controls"
  "spotify"
+ "twurl"
  ]
 
