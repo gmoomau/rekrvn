@@ -27,4 +27,4 @@
     )))
 
 (rekrvn.core/addListener
-  "spotify" #"(http://open.spotify.com/track/|spotify:track:)(\S+)" trackStr)
+  "spotify" #"(http://open.spotify.com/track/|spotify:track:)([\d\w]+)" trackStr)
