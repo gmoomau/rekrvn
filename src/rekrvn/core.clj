@@ -5,8 +5,7 @@
 
 (def baseDir "/home/grog/rekrvn/src")
 (def modDir "rekrvn/modules/")
-(def modCleanup (ref {})) ;; maps id->ending function
-(def listeners (ref #{})) ;; maps id->trigger
+(def listeners (ref [])) ;; list of triggers
 
 ;; string content fn reply
 (defn broadcast [content reply]
@@ -16,7 +15,7 @@
               @listeners))
   )
 
-(defn addListener [id matcher action]
+(defn addListener [matcher action]
   (dosync (alter listeners conj {:matcher matcher :action action}))
   )
 
