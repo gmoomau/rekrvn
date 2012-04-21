@@ -3,6 +3,6 @@
 (ns rekrvn.modcontrols
   (:require rekrvn.core))
 
-(rekrvn.core/addListener "modcontrols"
+(rekrvn.core/addListener
   #"^irc.*PRIVMSG \S+ :\.load (\S+)$"
   (fn [[modName] reFn] (rekrvn.core/modLoad modName)))

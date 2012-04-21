@@ -4,6 +4,8 @@
   (:use [cheshire.core])
   )
 
+(def modName "spotify")
+
 (defn niceify [track]
   (str (:name (first (:artists (:track track)))) " - " (:name (:track track))))
 
@@ -21,10 +23,11 @@
   (when-let [jsn (apiLookup id)]
     (let [parsed (parse-string jsn true)
           msg (niceify parsed)]
-      (if (re-matches #"spotify:track:" linktype)
-        (reply "spotify" (str msg "   http://open.spotify.com/track/" id))
-        (reply "spotify" msg))
-    )))
+      (when reply
+        (if (re-matches #"spotify:track:" linktype)
+          (reply modName (str msg "   http://open.spotify.com/track/" id))
+          (reply modName msg)))
+      )))
 
 (rekrvn.core/addListener
-  "spotify" #"(http://open.spotify.com/track/|spotify:track:)([\d\w]+)" trackStr)
+  #"(http://open.spotify.com/track/|spotify:track:)([\d\w]+)" trackStr)

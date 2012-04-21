@@ -22,7 +22,7 @@
   (when-let [jsn (apiLookup tweetid)]
     (let [parsed (parse-string jsn true)
           msg (niceify parsed)]
-      (reply "twurl" msg)
+      (when reply (reply "twurl" msg))
       )))
 
-(rekrvn.core/addListener "twurl" #"https?://.*twitter\.com.*/\S+/status/(\d+)" twurl)
+(rekrvn.core/addListener #"https?://.*twitter\.com.*/\S+/status/(\d+)" twurl)

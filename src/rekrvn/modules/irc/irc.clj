@@ -188,6 +188,6 @@
 
 
 ;; definitions done, actually doing stuff now
-(rekrvn.core/addListener "irc" #"^(\S+) forirc (\S+)#(\S+) (.+)" doSomething)
+(rekrvn.core/addListener #"^(\S+) forirc (\S+)#(\S+) (.+)" doSomething)
 ;; read from config file
 (startirc)
