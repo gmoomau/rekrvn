@@ -127,8 +127,14 @@
             (when-let [joined (re-find (re-pattern (str serverMsg " = (\\S+) :")) msg)]
               (dosync (alter currentChannels conj (str network "#" (second joined)))))
             (when-let [kicked (re-find #"\S+ KICK (#\S+) " msg)]
+              ;; current regex can be faked
               ;; rejoin functionality goes here
               (dosync (alter currentChannels disj (str network "#" (second kicked)))))
+
+            (when-let
+              [invited (re-find (re-pattern (str "INVITE (#\\S+)" (:nick server) " :")) msg)]
+              (joinChan conn (second invited)))
+
 
             ;; module management
             (when-let [cmd (re-find #"PRIVMSG (\S+) :\.(en)?(dis)?able (\S+)$" msg)]
