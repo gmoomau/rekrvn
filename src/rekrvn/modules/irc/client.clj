@@ -132,7 +132,7 @@
               (dosync (alter currentChannels disj (str network "#" (second kicked)))))
 
             (when-let
-              [invited (re-find (re-pattern (str "INVITE (#\\S+)" (:nick server) " :")) msg)]
+              [invited (re-find (re-pattern (str "INVITE " (:nick server) " :(#\\S+)$")) msg)]
               (joinChan conn (second invited)))
 
 
