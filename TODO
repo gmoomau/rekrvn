@@ -1,4 +1,3 @@
-use doseq where appropriate
 agents for irc?
 make replyFn optional
 make replyFn take 2 arguments
