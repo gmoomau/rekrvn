@@ -1,14 +1,15 @@
 # rekrvn
 
-A bot framework with plugins.
+A bot framework with modules.
 
 ## Usage
 
 list modules you want enabled in config.clj
-eg. "example" will run modules/example.clj or modules/example/example.clj
+eg. "example" will add modules/example.clj
+    "irc.client" will add modules/irc/client.clj
 
 ## FOR MODULE AUTHORS
-(:require rekrvn.core)
+(:require rekrvn.hub)
 
 publish events via (rekrvn.core/broadcast [content replyfn])
 content is a string beginning with a one-word identifier for your module
@@ -18,7 +19,8 @@ and msg is the module's response.
 For example, the irc module provides a replyFn that sends message to the channel from which
 the message originated.
 
-subscribe to events/messages via (rekrvn.core/addListener [matcher actFn])
+subscribe to events/messages via (rekrvn.core/addListener [modname matcher actFn])
+modname is the name of the module adding the listener
 matcher is an re-pattern to match applicable publications
 actFn is the function to be called on matching publications. As arguments, it takes
 a list containing the parenthesized groups in matcher and a replyFn.
