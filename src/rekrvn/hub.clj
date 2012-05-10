@@ -6,11 +6,9 @@
 
 ;; string content fn reply
 (defn broadcast [content reply]
-  (doall (map (fn [{matcher :matcher actFn :action}]
-                (doseq [results (re-seq matcher content)]
-                  (actFn (rest results) reply)))
-              @listeners))
-  )
+  (doseq [{matcher :matcher actFn :action} @listeners]
+    (doseq [results (re-seq matcher content)]
+      (actFn (rest results) reply))))
 
 (defn addListener [modname matcher action]
   (dosync (alter listeners conj {:mod modname :matcher matcher :action action}))

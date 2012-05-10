@@ -73,7 +73,7 @@
     ))
 
 (defn shutdown []
-  (doall (map quit (vals @connections)))
+  (doseq [conn @connections] (quit conn))
   )
 
 (declare conn-handler)
@@ -99,7 +99,7 @@
     ;; register with server
     (register (:nick server))
 
-    (doall (map (partial joinChan conn) (:channels server)))
+    (doseq [chan (:channels server)] (joinChan conn chan))
     ;; testing stuff goes here?
     ;; testing stuff ends here
 
@@ -147,7 +147,7 @@
               )
           ))
       (when (and @registered (not-empty (:queue @conn)))
-        (doall (map write (:queue @conn)))
+        (doseq [msg (:queue @conn)] (write msg))
         (dosync (alter conn assoc :queue []))
         )
       (Thread/sleep 100)
