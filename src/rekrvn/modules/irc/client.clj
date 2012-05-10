@@ -1,5 +1,5 @@
-(ns rekrvn.irc
-  (:require rekrvn.core)
+(ns rekrvn.modules.irc.client
+  (:require [rekrvn.hub :as hub])
   (:import (java.net Socket)
            (java.lang Thread)
            (java.io PrintWriter InputStreamReader BufferedReader File))
@@ -142,7 +142,7 @@
               (when-let [recip (re-find #"PRIVMSG (\S+) :" msg)]
                 (let [reply (fn [modName msg]
                               (doSomething [modName network (second recip) msg] nil))]
-                  (rekrvn.core/broadcast (str "irc " msg) reply))
+                  (hub/broadcast (str "irc " msg) reply))
                 )
               )
           ))
@@ -188,6 +188,6 @@
 
 
 ;; definitions done, actually doing stuff now
-(rekrvn.core/addListener #"^(\S+) forirc (\S+)#(\S+) (.+)" doSomething)
+(hub/addListener "irc.client" #"^(\S+) forirc (\S+)#(\S+) (.+)" doSomething)
 ;; read from config file
 (startirc)

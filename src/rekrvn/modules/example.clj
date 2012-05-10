@@ -1,12 +1,12 @@
-(ns rekrvn.example
-  (:require [rekrvn.core])
+(ns rekrvn.modules.example
+  (:require [rekrvn.hub :as hub])
   )
 
 (defn mimic [[matched] reply]
   (reply "mimic" matched))
-(rekrvn.core/addListener #"^irc.*PRIVMSG #\S+ :(.+)" mimic)
+(hub/addListener "example" #"^irc.*PRIVMSG #\S+ :(.+)" mimic)
 
 ;(defn twurl [[username tweet] reply]
 ;  (reply "twurl" (str username " " tweet)))
-;(rekrvn.core/addListener #"^irc.*https?://.*twitter\.com.*/(.+)/status/(\d+)" twurl)
+;(hub/addListener #"^irc.*https?://.*twitter\.com.*/(.+)/status/(\d+)" twurl)
 

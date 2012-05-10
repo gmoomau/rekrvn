@@ -1,8 +1,9 @@
 ;; WARNING: You probably shouldn't use .load on things with long-
 ;; lived connections, like irc or twitter
-(ns rekrvn.modcontrols
-  (:require rekrvn.core))
+(ns rekrvn.irc.modcontrols
+  (:require [rekrvn.hub :as hub]))
 
-(rekrvn.core/addListener
+(hub/addListener
+  "irc.modcontrols"
   #"^irc.*PRIVMSG \S+ :\.load (\S+)$"
-  (fn [[modName] reFn] (rekrvn.core/modLoad modName)))
+  (fn [[modName] reFn] (hub/reload modName)))

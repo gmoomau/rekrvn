@@ -1,5 +1,5 @@
-(ns rekrvn.twurl
-  (:require [rekrvn.core])
+(ns rekrvn.modules.twurl
+  (:require [rekrvn.hub :as hub])
   (:require [http.async.client :as c])
   (:use [cheshire.core])
   )
@@ -25,4 +25,4 @@
       (when reply (reply "twurl" msg))
       )))
 
-(rekrvn.core/addListener #"https?://.*twitter\.com.*/\S+/status/(\d+)" twurl)
+(hub/addListener "twurl" #"https?://\S*twitter\.com\S*/status/(\d+)" twurl)

@@ -1,5 +1,5 @@
-(ns rekrvn.spotify
-  (:require [rekrvn.core])
+(ns rekrvn.modules.spotify
+  (:require [rekrvn.hub :as hub])
   (:require [http.async.client :as c])
   (:use [cheshire.core])
   )
@@ -29,5 +29,5 @@
           (reply modName msg)))
       )))
 
-(rekrvn.core/addListener
-  #"(http://open.spotify.com/track/|spotify:track:)([\d\w]+)" trackStr)
+(hub/addListener
+  modName #"(http://open.spotify.com/track/|spotify:track:)([\d\w]+)" trackStr)
