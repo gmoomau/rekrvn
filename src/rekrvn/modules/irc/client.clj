@@ -174,7 +174,9 @@
       (alter servers assoc (:network server) server)
       ;; load permissions
       (doseq [perm (:perms server)]
-        (alter modPerms assoc (str (:network server) "#" (:channel perm)) perm))
+        (let [defaults {:defaultAllow false :whitelist #{} :blacklist #{}}]
+          (alter modPerms
+                 assoc (str (:network server) "#" (:channel perm)) (merge defaults perm))))
       )
     ;; connect to server if specified
     (when (:autoConnect server) (connect server)))
