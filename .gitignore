@@ -8,3 +8,4 @@
 /.lein-deps-sum
 *.swp
 *.swo
+*config.clj

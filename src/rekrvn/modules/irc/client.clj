@@ -1,5 +1,6 @@
 (ns rekrvn.modules.irc.client
   (:require [rekrvn.hub :as hub])
+  (:require [rekrvn.modules.irc.config :as conf])
   (:import (java.net Socket)
            (java.lang Thread)
            (java.io PrintWriter InputStreamReader BufferedReader File))
@@ -118,33 +119,33 @@
           (when (re-find #"^PING" msg)
             (write (str "PONG " (re-find #":.*" msg))))
 
-            (when @registered
-              (when (re-find #"!quit" msg)
-                (quit conn))
+          (when @registered
+            (when (re-find #"127.0.0.1.*!quit" msg)
+              (quit conn))
 
-              ;; channel management
-              (when-let [joined (re-find (re-pattern (str serverMsg " = (\\S+) :")) msg)]
-                (dosync (alter currentChannels conj (str network "#" (second joined)))))
-              (when-let [kicked (re-find #"\S+ KICK (#\S+) " msg)]
-                ;; rejoin functionality goes here
-                (dosync (alter currentChannels disj (str network "#" (second kicked)))))
+            ;; channel management
+            (when-let [joined (re-find (re-pattern (str serverMsg " = (\\S+) :")) msg)]
+              (dosync (alter currentChannels conj (str network "#" (second joined)))))
+            (when-let [kicked (re-find #"\S+ KICK (#\S+) " msg)]
+              ;; rejoin functionality goes here
+              (dosync (alter currentChannels disj (str network "#" (second kicked)))))
 
-              ;; module management
-              (when-let [cmd (re-find #"PRIVMSG (\S+) :\.(en)?(dis)?able (\S+)$" msg)]
-                (let [[source enable disable module] (rest cmd)]
-                  (cond
-                    enable (modAllow network source module)
-                    disable (modDeny network source module)
-                    )
+            ;; module management
+            (when-let [cmd (re-find #"PRIVMSG (\S+) :\.(en)?(dis)?able (\S+)$" msg)]
+              (let [[source enable disable module] (rest cmd)]
+                (cond
+                  enable (modAllow network source module)
+                  disable (modDeny network source module)
+                  )
                 ))
 
-              ;; normal chat
-              (when-let [recip (re-find #"PRIVMSG (\S+) :" msg)]
-                (let [reply (fn [modName msg]
-                              (doSomething [modName network (second recip) msg] nil))]
-                  (hub/broadcast (str "irc " msg) reply))
-                )
+            ;; normal chat
+            (when-let [recip (re-find #"PRIVMSG (\S+) :" msg)]
+              (let [reply (fn [modName msg]
+                            (doSomething [modName network (second recip) msg] nil))]
+                (hub/broadcast (str "irc " msg) reply))
               )
+            )
           ))
       (when (and @registered (not-empty (:queue @conn)))
         (doseq [msg (:queue @conn)] (write msg))
@@ -161,30 +162,17 @@
     ))
 
 (defn startirc []
-  (let [srv '({:network "flounder" :nick "cljr" :realname "bot" :autoConnect true
-               :server "flounder.dyndns.org" :port 6998 :channels ["#test"]
-               :perms [{:channel "#test" :defaultAllow true :whitelist #{"twurl"}
-                        :blacklist #{"mimic"}}
-                       {:channel "#room" :defaultAllow false :whitelist #{"spotify" "twurl"}}
-                        ]
-               }
-              )]
-    ;; above is a dummy data structure. real thing will read from a file
-    (doall (map (fn [server]
-                  (dosync
-                    ;; add server to internal list for some reason
-                    (alter servers assoc (:network server) server)
-                    ;; save all channel permission
-                    (doall (map (fn [perm]
-                                  (alter modPerms assoc (str (:network server) "#" (:channel perm)) perm))
-                                (:perms server)
-                                ))
-                    )
-                  ;; connect to server if specified
-                  (when (:autoConnect server) (connect server))
-                  )
-                srv))
-    ))
+  (doseq [server conf/servers]
+    (dosync
+      ;; add server to internal list for some reason
+      (alter servers assoc (:network server) server)
+      ;; load permissions
+      (doseq [perm (:perms server)]
+        (alter modPerms assoc (str (:network server) "#" (:channel perm)) perm))
+      )
+    ;; connect to server if specified
+    (when (:autoConnect server) (connect server)))
+  )
 
 
 ;; definitions done, actually doing stuff now
