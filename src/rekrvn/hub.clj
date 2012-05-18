@@ -5,10 +5,12 @@
 (def listeners (ref [])) ;; list of triggers
 
 ;; string content fn reply
-(defn broadcast [content reply]
+(defn broadcast
+  ([content] (broadcast content (fn [& args])))
+  ([content reply]
   (doseq [{matcher :matcher actFn :action} @listeners]
     (doseq [results (re-seq matcher content)]
-      (actFn (rest results) reply))))
+      (actFn (rest results) reply)))))
 
 (defn addListener [modname matcher action]
   (dosync (alter listeners conj {:mod modname :matcher matcher :action action}))
