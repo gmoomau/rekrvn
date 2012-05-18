@@ -26,6 +26,15 @@
     (alter conn assoc :exit true))
   )
 
+(defn write [conn msg]
+  (doto (:out @conn)
+    (.println (str msg "\r"))
+    (.flush)))
+
+(defn raw [[server cmd] replyFn]
+  (when-let [conn (get @connections server)]
+    (write conn cmd)))
+
 (defn permits [recip module]
   ;; add handling for no permissions specified
   ;; make up new ones/add from servers map
@@ -91,18 +100,14 @@
   (let [serverMsg (str "^:\\S+ \\d\\d\\d " (:nick server))
         registered (ref false)
         network (:network server)
-        write (fn [msg] (doto (:out @conn)
-                          (.println (str msg "\r"))
-                          (.flush)))
         register (fn [nick]
-                   (write (str "NICK " nick))
-                   (write (str "USER " nick " 0 * :" (:realname server))))]
+                   (write conn (str "NICK " nick))
+                   (write conn (str "USER " nick " 0 * :" (:realname server))))
+        ]
     ;; register with server
     (register (:nick server))
 
     (doseq [chan (:channels server)] (joinChan conn chan))
-    ;; testing stuff goes here?
-    ;; testing stuff ends here
 
     ;; handle messages
     (while (not (:exit @conn))
@@ -117,9 +122,13 @@
             (quit conn))
 
           (when (re-find #"^PING" msg)
-            (write (str "PONG " (re-find #":.*" msg))))
+            (write conn (str "PONG " (re-find #":.*" msg))))
 
           (when @registered
+            ;; ugly hacks below
+            (when-let [rawcmd (re-find #"^:grog\S+ PRIVMSG #test :\.raw (\S+) (.*)" msg)]
+              (raw (rest rawcmd) (fn [& args])))
+            ;; slightly less ugly hacks below
             (when (re-find #"127.0.0.1.*!quit" msg)
               (quit conn))
 
@@ -135,8 +144,7 @@
               [invited (re-find (re-pattern (str "INVITE " (:nick server) " :(#\\S+)$")) msg)]
               (joinChan conn (second invited)))
 
-
-            ;; module management
+            ; module management
             (when-let [cmd (re-find #"PRIVMSG (\S+) :\.(en)?(dis)?able (\S+)$" msg)]
               (let [[source enable disable module] (rest cmd)]
                 (cond
@@ -145,23 +153,26 @@
                   )
                 ))
 
-            ;; normal chat
-            (when-let [recip (re-find #"PRIVMSG (\S+) :" msg)]
+            ;; irc stuff that happens. this should/will all be changed soon
+            (if-let [recip (re-find #"PRIVMSG (\S+) :" msg)]
+              ;; privmsgs have replyfns
               (let [reply (fn [modName msg]
                             (doSomething [modName network (second recip) msg] nil))]
                 (hub/broadcast (str "irc " msg) reply))
+              ;; otherwise don't
+              (hub/broadcast (str "irc " msg))
               )
             )
           ))
       (when (and @registered (not-empty (:queue @conn)))
-        (doseq [msg (:queue @conn)] (write msg))
+        (doseq [msg (:queue @conn)] (write conn msg))
         (dosync (alter conn assoc :queue []))
         )
       (Thread/sleep 100)
       )
     ;; only gets here when it receives the exit command
     (dosync
-      (write "QUIT")
+      (write conn "QUIT")
       (ref-set currentChannels (remove (fn [chan] (re-find (re-pattern (str "^" network "#")) chan)) @currentChannels))
       (alter connections dissoc network)
       )
@@ -174,8 +185,10 @@
       (alter servers assoc (:network server) server)
       ;; load permissions
       (doseq [perm (:perms server)]
-        (alter modPerms assoc (str (:network server) "#" (:channel perm)) perm))
-      )
+        (let [emptyPerms {:defaultAllow false :blacklist #{} :whitelist #{}}]
+          (alter modPerms
+                 assoc (str (:network server) "#" (:channel perm)) (merge emptyPerms perm)))
+        ))
     ;; connect to server if specified
     (when (:autoConnect server) (connect server)))
   )
@@ -183,5 +196,6 @@
 
 ;; definitions done, actually doing stuff now
 (hub/addListener "irc.client" #"^(\S+) forirc (\S+)#(\S+) (.+)" doSomething)
+(hub/addListener "irc.client" #"^\S+ irccmd (\S+) (.+)" raw)
 ;; read from config file
 (startirc)
