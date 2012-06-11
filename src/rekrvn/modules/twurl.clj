@@ -27,6 +27,6 @@
   (when-let [jsn (api-lookup tweetid)]
     (let [parsed (parse-string jsn true)
           msg (niceify parsed)]
-      (when reply (reply "twurl" msg)))))
+      (reply "twurl" msg))))
 
-(hub/addListener "twurl" #"https?://\S*twitter\.com\S*/status/(\d+)" twurl)
+(hub/addListener "twurl" #"https?://\S*twitter\.com\S*/status(?:es)?/(\d+)" twurl)
