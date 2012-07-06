@@ -23,6 +23,6 @@
 (defn weather [[location] reply]
   (if-let [raw-weather (api-lookup location)]
     (reply mod-name (niceify raw-weather))
-    (reply mod-name (str "Could not find weather for " location))))
+    (reply mod-name "For some reason this is only works if you give it a zip code.")))
 
 (hub/addListener "weather" #"^irc.*PRIVMSG \S+ :\.w (.+)$" weather)
