@@ -6,7 +6,7 @@
 (def mod-name "weather")
 
 (defn niceify [raw-weather]
-  (let [regx #"(\d\d:\d\d \S\S \S\S\S).+\|(\d+)\|.+\|.+\|(.+)\|.+\|.+\|(.+)\|(.+)\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|(.+)\|(.+)\|.+\|.+\|.+\|.+\|"
+  (let [regx #"(\d?\d:\d\d \S+ \S+).+\|(\d+)\|.+\|.+\|(\d+%)\|.+\|.+\|(\d+\.\d+)\|(.+)\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|(.+)\|(.+)\|.+\|.+\|.+\|.+\|"
         [clock temp humidity pressure sky sloc bloc] (rest (re-find regx raw-weather))]
     (str sloc ", " bloc " (" clock "): " temp "°F - " sky " | "
          humidity " Humidity | Barometer: " pressure)))
@@ -22,6 +22,6 @@
 (defn weather [[location] reply]
   (if-let [raw-weather (api-lookup location)]
     (reply mod-name (niceify raw-weather))
-    (reply mod-name "For some reason this only works if you give it a zip code.")))
+    (reply mod-name "This thing is really picky about locations. Try a zip code.")))
 
-(hub/addListener "weather" #"^irc.*PRIVMSG \S+ :\.w (.+)$" weather)
+(hub/addListener "weather" #"^irc.*PRIVMSG \S+ :\.w(?:eather)? (.+)$" weather)
