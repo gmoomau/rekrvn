@@ -7,14 +7,17 @@
 (defn expand-links [text urls]
   (reduce #(clojure.string/replace %1 (:url %2) (:expanded_url %2)) text urls))
 
-(defn bold [text] (str (char 2) text (char 15)))
+(defn plaintext [text]
+  (clojure.string/replace text "&amp;" "&"))
+
+(defn bold [text] (when text (str (char 2) text (char 15))))
 ;; 0x02 bolds in irc and 0x0F (decimal 15) removes formatting
 
 (defn niceify [tweet]
-  (let [user-string (bold (:screen_name (:user tweet)))]
+  (when-let [user-string (bold (:screen_name (:user tweet)))]
     (if (:retweeted_status tweet)
       (str user-string " RT @" (niceify (:retweeted_status tweet)))
-      (str user-string " " (expand-links (:text tweet) (:urls (:entities tweet)))))))
+      (str user-string " " (expand-links (plaintext (:text tweet)) (:urls (:entities tweet)))))))
 
 (defn api-lookup [id]
   (with-open [client (c/create-client)]
