@@ -1,5 +1,5 @@
+use (comment) as a nop
 agents for irc?
-make replyFn optional
 make replyFn take 2 arguments
 use commute instead of alter when possible
 change irc queue to an atom, use swap! to clear it
