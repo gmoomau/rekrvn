@@ -1,16 +1,17 @@
-# rekrvn
-
+rekrvn
+---------------
 A bot framework with modules.
 
 ## Usage
-
+-----------
 list modules you want enabled in config.clj
 eg. "example" will add modules/example.clj
     "irc.client" will add modules/irc/client.clj
 
 See complete example in config.clj.example
 
-## FOR MODULE AUTHORS
+## Writing a Module:
+-----------
 (:require rekrvn.hub)
 
 publish events via (rekrvn.hub/broadcast content replyfn)
