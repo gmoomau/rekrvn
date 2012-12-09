@@ -3,9 +3,18 @@
 ;; a module named "example" must be in modules/example.clj or modules/example/example.clj
 (def modules [
  "example"
- ;;"irc.client"
- "irc.module_controls"
+ "irc.client"
+ "irc.modcontrols"
  "spotify"
  "twurl"
  ])
+
+(def irc-opts
+  [ {:network "example" :nick "cljr" :realname "bot" :autoConnect true
+     :server "example.org" :port 6667 :channels ["#test"]
+     :perms [{:channel "#test" :defaultAllow true :blacklist #{"mimic"}}
+             {:channel "#room" :defaultAllow false :whitelist #{"spotify" "twurl"}}
+             ]
+     }
+   ])
 
