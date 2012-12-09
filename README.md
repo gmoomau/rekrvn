@@ -17,8 +17,8 @@ Writing a Module
 publish events via (rekrvn.hub/broadcast content replyfn)
 - content is a string beginning with a one-word identifier for your module
 - replyFn is a function to be used by other modules in order to respond to published events
-It takes two arguments, modId and msg. modId is a string name for the module calling replyFn
-and msg is the module's response.
+
+It takes two arguments, modId and msg. modId is a string name for the module calling replyFn and msg is the module's response.
 
 For example, the irc module provides a replyFn that sends message to the channel from which
 the message originated.
@@ -34,4 +34,4 @@ See modules/example.clj for examples.
 
 Copyright (C) 2012
 
-License: DWYW
+License: MIT
