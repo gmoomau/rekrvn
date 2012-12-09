@@ -1,6 +1,6 @@
 (ns rekrvn.modules.irc.client
   (:require [rekrvn.hub :as hub])
-  (:require [rekrvn.modules.irc.config :as conf])
+  (:use [rekrvn.config :only [irc-opts]])
   (:import (java.net Socket)
            (java.lang Thread)
            (java.io PrintWriter InputStreamReader BufferedReader File))
@@ -179,7 +179,7 @@
     ))
 
 (defn startirc []
-  (doseq [server conf/servers]
+  (doseq [server irc-opts]
     (dosync
       ;; add server to internal list for some reason
       (alter servers assoc (:network server) server)
@@ -197,5 +197,5 @@
 ;; definitions done, actually doing stuff now
 (hub/addListener "irc.client" #"^(\S+) forirc (\S+)#(\S+) (.+)" doSomething)
 (hub/addListener "irc.client" #"^\S+ irccmd (\S+) (.+)" raw)
-;; read from config file
+;; initialize options from config file
 (startirc)
