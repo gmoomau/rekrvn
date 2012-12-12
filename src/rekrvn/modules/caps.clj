@@ -13,7 +13,7 @@
             result (mongo/get-rand-as-map modName finder)]
         (mongo/insert modName new-doc)
         (when result
-          (reply modName (:text out-line)))
+          (reply modName (:text result)))
         (mongo/disconnect!)))))
 
 (hub/addListener modName #"^irc.*PRIVMSG #(\S+) :([^a-z]*[A-Z]+[^a-z]*)$" caps)

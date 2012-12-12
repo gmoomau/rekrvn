@@ -4,5 +4,6 @@
   (:require [rekrvn.hub :as hub]))
 
 (hub/addListener
+  "irc.modcontrols"
   #"^irc.*PRIVMSG \S+ :\.load (\S+)$"
   (fn [[modName] reFn] (hub/reload modName)))

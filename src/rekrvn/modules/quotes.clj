@@ -29,9 +29,10 @@
   (do
     (mongo/connect!)
     (case cmd
-      "add" (when-let
-              [[_ nick text] (re-matches #"([a-zA-Z0-9_-]+):? (.+)" line)]
-              (add-quote channel nick text))
+      "add" (when line
+              (when-let
+                [[_ nick text] (re-matches #"([a-zA-Z0-9_-]+):? (.+)" line)]
+                (add-quote channel nick text)))
       "remove" (remove-quote channel line)
 
       ;; default: search for a quote
