@@ -1,6 +1,7 @@
 (ns rekrvn.modules.quotes
   (:require [rekrvn.hub :as hub]
-            [rekrvn.modules.mongo :as mongo]))
+            [rekrvn.modules.mongo :as mongo]
+            [clojure.string :as s]))
 
 ;; Usage:
 ;; .quote add <line>
@@ -18,9 +19,10 @@
 
 (defn get-quote [chan search-term]
   (if search-term
-    (let [patt (re-pattern (str "(?i)" search-term))]
-      ;; match should be case-insensitive
-      (mongo/get-rand-as-map modName {:channel chan :text patt}))
+    (let [terms (s/split search-term #"\s+")
+          regexs (map #(re-pattern (str "(?i)" %)) terms)
+          re-maps (map (fn [r] {:text r}) regexs)]
+      (mongo/get-rand-as-map modName {:channel chan '$and re-maps}))
     (mongo/get-rand-as-map modName {:channel chan})))
 
 (defn quotes [[channel cmd line] reply]
@@ -36,9 +38,10 @@
       "remove" (remove-quote channel line)
 
       ;; default: search for a quote
-      (if-let [res (get-quote channel cmd)]
-        (reply modName (:text res))
-        (reply modName (str "No quotes matching \"" cmd "\" found."))))
+      (let [terms (when cmd (str cmd (when line (str " " line))))]
+        (if-let [res (get-quote channel terms)]
+          (reply modName (:text res))
+          (reply modName (str "No quotes matching \"" terms "\" found.")))))
     (mongo/disconnect!)))
 
 (hub/addListener modName #"^irc.*PRIVMSG #(\S+) :\.quote(?: (\S+)(?: (.+))?)?$" quotes)

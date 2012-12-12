@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [sort find remove])
   (:require [monger.core :as mg]
             [monger.collection :as mc])
-  (:use monger.query)
+  (:use monger.query monger.operators)
   (:import [com.mongodb MongoOptions ServerAddress]
            [org.bson.types ObjectId]))
 
