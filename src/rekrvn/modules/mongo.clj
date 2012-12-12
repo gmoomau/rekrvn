@@ -1,5 +1,5 @@
 (ns rekrvn.modules.mongo
-  (:refer-clojure :exclude [sort find])
+  (:refer-clojure :exclude [sort find remove])
   (:require [monger.core :as mg]
             [monger.collection :as mc])
   (:use monger.query)
@@ -22,6 +22,11 @@
 (defn insert [from document]
   ;; ex. from could be "caps" or "quotes"
   (mc/insert from (merge document {:_id (ObjectId.)})))
+
+(defn remove [from finder]
+  ;; will remove ALL documents in the collection that match finder
+  ;; modules calling (remove ..) do so at their own risk
+  (mc/remove from finder))
 
 (defn get-rand-as-map [from finder]
   ;; assumes that (connect!) has been called
