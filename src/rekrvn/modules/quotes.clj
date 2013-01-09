@@ -34,8 +34,12 @@
       "add" (when line
               (when-let
                 [[_ nick text] (re-matches #"([a-zA-Z0-9_-]+):? (.+)" line)]
-                (add-quote channel nick text)))
-      "remove" (remove-quote channel line)
+                (if (.getError (add-quote channel nick text))
+                  (reply modName "Error adding quote.")
+                  (reply modName "Quote added."))))
+      "remove" (if (= 0 (.getN (remove-quote channel line)))
+                 (reply modName "There are no quotes like that to remove.")
+                 (reply modName "Quote removed."))
 
       ;; default: search for a quote
       (let [terms (when cmd (str cmd (when line (str " " line))))]
