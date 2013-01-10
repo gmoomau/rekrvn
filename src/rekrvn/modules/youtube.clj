@@ -4,16 +4,19 @@
 
 (def mod-name "youtube")
 
-(defn niceify [title]
+(defn niceify [title dur]
   (when title
-    (str (char 3) "1,0You" (char 3) "0,5Tube" (char 3) " " title)))
+    (str
+      (char 3) "1,0You" (char 3) "0,5Tube" (char 3) " " title
+      " (" (quot dur 60) ":" (rem dur 60) ")")))
 
 (defn youtube [[vid] reply]
   (try ; xml/parse throws IOException on a bad url
-    (let [url (str "http://gdata.youtube.com/feeds/api/videos/" vid "?fields=title")
+    (let [url (str "http://gdata.youtube.com/feeds/api/videos/" vid "?fields=title,media:group(media:content(@duration))")
           xml (xml/parse url)
           title (-> xml :content first :content first)
-          msg (niceify title)]
+          dur (-> xml :content second :content first :attrs :duration read-string)
+          msg (niceify title dur)]
       (reply mod-name msg))
     (catch Exception e (str "Caught exception: " (.getMessage e)))))
 
