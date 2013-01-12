@@ -8,7 +8,7 @@
   (when title
     (str
       (char 3) "1,0You" (char 3) "0,5Tube" (char 3) " " title
-      " (" (quot dur 60) ":" (rem dur 60) ")")))
+      " (" (quot dur 60) ":" (format "%02d" (rem dur 60)) ")")))
 
 (defn youtube [[vid] reply]
   (try ; xml/parse throws IOException on a bad url
