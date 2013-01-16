@@ -39,3 +39,7 @@
                             (find finder)
                             (skip (rand num-docs))
                             (limit 1)))))
+
+(defn get-docs [from finder]
+   ;; returns all documents matching finder
+   (mc/find-maps from finder))
