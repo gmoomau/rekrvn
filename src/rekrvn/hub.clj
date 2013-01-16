@@ -7,9 +7,11 @@
 (defn broadcast
   ([content] (broadcast content (fn [& args])))
   ([content reply]
-  (doseq [{matcher :matcher actFn :action} @listeners]
-    (doseq [results (re-seq matcher content)]
-      (actFn (rest results) reply)))))
+   (doseq [{matcher :matcher actFn :action} @listeners]
+     (doseq [results (re-seq matcher content)]
+       (try
+         (actFn (rest results) reply)
+         (catch Exception e (println (str "Caught exception: " (.getMessage e)))))))))
 
 (defn addListener [modname matcher action]
   (dosync (alter listeners conj {:mod modname :matcher matcher :action action})))
@@ -18,7 +20,7 @@
   (let [module (symbol (str "rekrvn.modules." modId))]
     (try
       (require module :reload)
-    (catch Exception e (str "Caught exception: " (.getMessage e))))))
+      (catch Exception e (println (str "Caught exception: " (.getMessage e)))))))
 
 (defn reload [modId]
   (do
