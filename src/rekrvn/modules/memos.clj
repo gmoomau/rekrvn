@@ -26,7 +26,7 @@
 (defn deliver-memos [[nick channel] reply]
   (dosync
     (when (@targets (.toLowerCase nick))
-      (let [memo-finder {:to (re-pattern (str "(?i)" nick)) :channel channel}]
+      (let [memo-finder {:to (re-pattern (str "(?i)^" nick "$")) :channel channel}]
         (mongo/connect!)
         (doseq [memo (mongo/get-docs modName memo-finder)]
           (reply modName (niceify memo)))
@@ -37,7 +37,7 @@
 (defn memo-list []
   (dosync
     (mongo/connect!)
-    (ref-set targets (into #{} (map :to (mongo/get-docs modName {}))))
+    (ref-set targets (into #{} (map #(.toLowerCase %) (map :to (mongo/get-docs modName {})))))
     (mongo/disconnect!)))
 
 (memo-list)
