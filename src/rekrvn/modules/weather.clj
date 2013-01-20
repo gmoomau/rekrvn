@@ -6,7 +6,7 @@
 (def mod-name "weather")
 
 (defn niceify [raw-weather]
-  (let [regx #"(\d?\d:\d\d \S+ \S+).+\|(\d+)\|.+\|.+\|(\d+%)\|.+\|.+\|(\d+\.\d+)\|(.+)\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|(.+)\|(.+)\|.+\|.+\|.+\|.+\|"
+  (let [regx #"(\d?\d:\d\d \S+ \S+).+\|(-?\d+)\|.+\|.+\|(\d+%)\|.+\|.+\|(\d+\.\d+)\|(.+)\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|.+\|(.+)\|(.+)\|.+\|.+\|.+\|(?:.+\|)?"
         [clock temp humidity pressure sky sloc bloc] (rest (re-find regx raw-weather))]
     (str sloc ", " bloc " (" clock "): " temp "°F - " sky " | "
          humidity " Humidity | Barometer: " pressure)))
