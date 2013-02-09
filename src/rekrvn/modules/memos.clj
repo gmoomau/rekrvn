@@ -1,6 +1,7 @@
 (ns rekrvn.modules.memos
   (:require [rekrvn.hub :as hub]
-            [rekrvn.modules.mongo :as mongo]))
+            [rekrvn.modules.mongo :as mongo]
+            [clojure.string :as s]))
 
 (def modName "memos")
 ;; a module for leaving memos for other users
@@ -16,7 +17,7 @@
 
 (defn add-memo [[sender channel recip msg] reply]
   (dosync
-    (alter targets conj (.toLowerCase recip))
+    (alter targets conj (s/lower-case recip))
     (mongo/connect!)
     (mongo/insert modName {:from sender :to recip :channel channel :msg msg})
     (mongo/disconnect!)
@@ -25,19 +26,19 @@
 
 (defn deliver-memos [[nick channel] reply]
   (dosync
-    (when (@targets (.toLowerCase nick))
+    (when (@targets (s/lower-case nick))
       (let [memo-finder {:to (re-pattern (str "(?i)^" nick "$")) :channel channel}]
         (mongo/connect!)
         (doseq [memo (mongo/get-docs modName memo-finder)]
           (reply modName (niceify memo)))
         (mongo/remove modName memo-finder)
         (mongo/disconnect!)
-        (alter targets disj (.toLowerCase nick))))))
+        (alter targets disj (s/lower-case nick))))))
 
 (defn memo-list []
   (dosync
     (mongo/connect!)
-    (ref-set targets (into #{} (map #(.toLowerCase %) (map :to (mongo/get-docs modName {})))))
+    (ref-set targets (into #{} (map (comp s/lower-case :to) (mongo/get-docs modName {}))))
     (mongo/disconnect!)))
 
 (memo-list)
