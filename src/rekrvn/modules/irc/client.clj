@@ -23,8 +23,7 @@
 ;; add handling in (message) for when you're not in a channel?
 (defn quit [conn]
   (dosync
-    (alter conn assoc :exit true))
-  )
+    (alter conn assoc :exit true)))
 
 (defn write [conn msg]
   (doto (:out @conn)
@@ -42,8 +41,7 @@
     (if (:defaultAllow permSet) ;; deny by default unless config says otherwise
       (not (contains? (:blacklist permSet) module)) ;; check blacklist
       (contains? (:whitelist permSet) module) ;; if default deny, check whitelist
-      )
-    ))
+      )))
 
 (defn modAllow [network channel module]
   (let [recip (str network "#" channel)
@@ -52,13 +50,9 @@
     (if permSet
       (dosync
         (alter modPerms update-in [recip :whitelist] conj module)
-        (alter modPerms update-in [recip :blacklist] disj module)
-        )
+        (alter modPerms update-in [recip :blacklist] disj module))
       (dosync (alter modPerms
-                     assoc recip {:defaultAllow false :blacklist #{} :whitelist #{module}})
-        )
-      )
-    ))
+                     assoc recip {:defaultAllow false :blacklist #{} :whitelist #{module}})))))
 
 (defn modDeny [network channel module]
   (let [recip (str network "#" channel)
@@ -67,24 +61,18 @@
     (if permSet
       (dosync
         (alter modPerms update-in [recip :blacklist] conj module)
-        (alter modPerms update-in [recip :whitelist] disj module)
-        )
+        (alter modPerms update-in [recip :whitelist] disj module))
       (dosync (alter modPerms
-                     assoc recip {:defaultAllow false :whitelist #{} :blacklist #{module}})
-        )
-      )
-    ))
+                     assoc recip {:defaultAllow false :whitelist #{} :blacklist #{module}})))))
 
 (defn doSomething [[fromModule network recip msg] replyFn]
   ;; for now only support (message), add other stuff later
   (when (and (permits (str network "#" recip) fromModule)
              (contains? @connections network))
-    (message (get @connections network) recip msg)
-    ))
+    (message (get @connections network) recip msg)))
 
 (defn shutdown []
-  (doseq [conn @connections] (quit conn))
-  )
+  (doseq [conn @connections] (quit conn)))
 
 (declare conn-handler)
 (defn connect [server]
@@ -126,7 +114,7 @@
 
           (when @registered
             ;; ugly hacks below
-            (when-let [rawcmd (re-find #"^:grog\S+ PRIVMSG #test :\.raw (\S+) (.*)" msg)]
+            (when-let [rawcmd (re-find #"^:grog\S+ PRIVMSG #dump :\.raw (\S+) (.*)" msg)]
               (raw (rest rawcmd) (fn [& args])))
             ;; slightly less ugly hacks below
             (when (re-find #"127.0.0.1.*!quit" msg)
@@ -149,9 +137,7 @@
               (let [[source enable disable module] (rest cmd)]
                 (cond
                   enable (modAllow network source module)
-                  disable (modDeny network source module)
-                  )
-                ))
+                  disable (modDeny network source module))))
 
             ;; irc stuff that happens. this should/will all be changed soon
             (if-let [recip (re-find #"PRIVMSG (\S+) :" msg)]
@@ -160,23 +146,18 @@
                             (doSomething [modName network (second recip) msg] nil))]
                 (hub/broadcast (str "irc " msg) reply))
               ;; otherwise don't
-              (hub/broadcast (str "irc " msg))
-              )
-            )
-          ))
+              (hub/broadcast (str "irc " msg))))))
+
       (when (and @registered (not-empty (:queue @conn)))
         (doseq [msg (:queue @conn)] (write conn msg))
-        (dosync (alter conn assoc :queue []))
-        )
-      (Thread/sleep 100)
-      )
+        (dosync (alter conn assoc :queue [])))
+      (Thread/sleep 100))
+
     ;; only gets here when it receives the exit command
     (dosync
       (write conn "QUIT")
       (ref-set currentChannels (remove (fn [chan] (re-find (re-pattern (str "^" network "#")) chan)) @currentChannels))
-      (alter connections dissoc network)
-      )
-    ))
+      (alter connections dissoc network))))
 
 (defn startirc []
   (doseq [server irc-opts]
@@ -187,8 +168,7 @@
       (doseq [perm (:perms server)]
         (let [emptyPerms {:defaultAllow false :blacklist #{} :whitelist #{}}]
           (alter modPerms
-                 assoc (str (:network server) "#" (:channel perm)) (merge emptyPerms perm)))
-        ))
+                 assoc (str (:network server) "#" (:channel perm)) (merge emptyPerms perm)))))
     ;; connect to server if specified
     (when (:autoConnect server) (connect server)))
   )
