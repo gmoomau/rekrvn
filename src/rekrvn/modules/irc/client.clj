@@ -45,8 +45,7 @@
 
 (defn modAllow [network channel module]
   (let [recip (str network "#" channel)
-        permSet (get @modPerms recip)
-        ]
+        permSet (get @modPerms recip)]
     (if permSet
       (dosync
         (alter modPerms update-in [recip :whitelist] conj module)
@@ -56,8 +55,7 @@
 
 (defn modDeny [network channel module]
   (let [recip (str network "#" channel)
-        permSet (get @modPerms recip)
-        ]
+        permSet (get @modPerms recip)]
     (if permSet
       (dosync
         (alter modPerms update-in [recip :blacklist] conj module)
@@ -143,7 +141,8 @@
             (if-let [recip (re-find #"PRIVMSG (\S+) :" msg)]
               ;; privmsgs have replyfns
               (let [reply (fn [modName msg]
-                            (doSomething [modName network (second recip) msg] nil))]
+                            (doSomething [modName network (second recip) msg] nil))
+                    filter-fn (fn [mod-name] (permits recip mod-name))]
                 (hub/broadcast (str "irc " msg) reply))
               ;; otherwise don't
               (hub/broadcast (str "irc " msg))))))

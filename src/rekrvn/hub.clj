@@ -9,7 +9,7 @@
   ([content reply] (broadcast content (fn [& args]) (fn [_] true)))
   ([content reply filter-fn]
    (doseq [{matcher :matcher act-fn :action mod-name :mod} @listeners]
-     (when (filter mod-name)
+     (when (filter-fn mod-name)
        (doseq [results (re-seq matcher content)]
          (try
            (act-fn (rest results) reply)
