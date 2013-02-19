@@ -142,8 +142,10 @@
               ;; privmsgs have replyfns
               (let [reply (fn [modName msg]
                             (doSomething [modName network (second recip) msg] nil))
-                    filter-fn (fn [mod-name] (permits recip mod-name))]
-                (hub/broadcast (str "irc " msg) reply))
+                    filter-fn (fn [mod-name]
+                                (let [my-recip (str network "#" recip)]
+                                  (permits my-recip mod-name)))]
+                (hub/broadcast (str "irc " msg) reply filter-fn))
               ;; otherwise don't
               (hub/broadcast (str "irc " msg))))))
 
