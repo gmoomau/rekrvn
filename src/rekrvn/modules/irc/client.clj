@@ -143,7 +143,7 @@
               (let [reply (fn [modName msg]
                             (doSomething [modName network (second recip) msg] nil))
                     filter-fn (fn [mod-name]
-                                (let [my-recip (str network "#" recip)]
+                                (let [my-recip (str network "#" (second recip))]
                                   (permits my-recip mod-name)))]
                 (hub/broadcast (str "irc " msg) reply filter-fn))
               ;; otherwise don't
