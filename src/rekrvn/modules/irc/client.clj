@@ -109,7 +109,7 @@
                                          (recur (.readLine in)))
                 (re-find (re-pattern (str serverMsg " :")) msg) out
                 :else (recur (.readLine in)))))]
-      (send-off out wait-until-registered))
+      (send out wait-until-registered))
 
     (doseq [chan (:channels server)] (joinChan conn chan))
 
