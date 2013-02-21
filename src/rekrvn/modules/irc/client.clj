@@ -15,12 +15,14 @@
 (def currentChannels (ref #{})) ;; id#channel (changes in real time)
 
 ;; irc commands
+(defn write-raw [out msg]
+  (doto out
+    (.println (str msg "\r"))
+    (.flush)))
 (defn write [conn msg]
   (send-off (:out @conn)
     (fn [out]
-      (doto out
-        (.println (str msg "\r"))
-        (.flush))
+      (write-raw out msg)
       out)))
 
 (defn joinChan [conn channel] (write conn (str "JOIN " channel)))
@@ -103,7 +105,7 @@
             (loop [msg (.readLine in)]
               (cond
                 (re-find #"^PING" msg) (do
-                                         (ping-response msg)
+                                         (write-raw out (str "PONG " (re-find #":.*" msg)))
                                          (recur (.readLine in)))
                 (re-find (re-pattern (str serverMsg " :")) msg) out
                 :else (recur (.readLine in)))))]
