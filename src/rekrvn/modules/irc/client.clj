@@ -78,7 +78,7 @@
   (let [socket (Socket. (:server server) (:port server))
         in (BufferedReader. (InputStreamReader. (.getInputStream socket)))
         out (agent (PrintWriter. (.getOutputStream socket)))
-        conn (ref {:in in :out out :queue []})]
+        conn (ref {:in in :out out})]
     (dosync (alter connections assoc (:network server) conn))
     (doto (Thread. #(conn-handler conn server)) (.start))
     conn))
@@ -154,9 +154,6 @@
             ;; otherwise don't
             (hub/broadcast (str "irc " msg)))))
 
-      (when (not-empty (:queue @conn))
-        (doseq [msg (:queue @conn)] (write conn msg))
-        (dosync (alter conn assoc :queue [])))
       (Thread/sleep 100))
 
     ;; only gets here when it receives the exit command
