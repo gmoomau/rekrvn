@@ -85,12 +85,6 @@
     (doto (Thread. #(conn-handler conn server)) (.start))
     conn))
 
-(defn wait-until-registered [server-msg] (fn [out in]
-  (loop [msg (.readLine in)]
-    (if (re-find (re-pattern (str server-msg " :")) msg)
-      out
-      (recur (.readLine in))))))
-
 (defn conn-handler [conn server]
   (let [serverMsg (str "^:\\S+ \\d\\d\\d " (:nick server))
         network (:network server)
@@ -102,8 +96,13 @@
     (register (:nick server))
 
     ;; block outgoing comms until i am registered
-    (let [my-conn @conn]
-      (send-off (:out my-conn) (wait-until-registered serverMsg) (:in my-conn)))
+    (let [my-conn @conn
+          wait-until-registered (fn [out in]
+            (loop [msg (.readLine in)]
+              (if (re-find (re-pattern (str serverMsg " :")) msg)
+                out
+                (recur (.readLine in)))))]
+      (send-off (:out my-conn) wait-until-registered (:in my-conn)))
 
     (doseq [chan (:channels server)] (joinChan conn chan))
 
