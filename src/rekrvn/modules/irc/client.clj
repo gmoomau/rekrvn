@@ -89,18 +89,25 @@
         register (fn [nick]
                    (write conn (str "NICK " nick))
                    (write conn (str "USER " nick " 0 * :" (:realname server))))
+        ping-response (fn [msg]
+                        (write conn (str "PONG " (re-find #":.*" msg))))
         ]
     ;; register with server
     (register (:nick server))
 
     ;; block outgoing comms until i am registered
     (let [my-conn @conn
-          wait-until-registered (fn [out in]
+          in (:in my-conn)
+          out (:out my-conn)
+          wait-until-registered (fn [out]
             (loop [msg (.readLine in)]
-              (if (re-find (re-pattern (str serverMsg " :")) msg)
-                out
-                (recur (.readLine in)))))]
-      (send-off (:out my-conn) wait-until-registered (:in my-conn)))
+              (cond
+                (re-find #"^PING" msg) (do
+                                         (ping-response msg)
+                                         (recur (.readLine in)))
+                (re-find (re-pattern (str serverMsg " :")) msg) out
+                :else (recur (.readLine in)))))]
+      (send-off out wait-until-registered))
 
     (doseq [chan (:channels server)] (joinChan conn chan))
 
@@ -114,7 +121,7 @@
             (quit conn))
 
           (when (re-find #"^PING" msg)
-            (write conn (str "PONG " (re-find #":.*" msg))))
+            (ping-response msg))
 
           ;; ugly hacks below
           (when-let [rawcmd (re-find #"^:grog\S+ PRIVMSG #dump :\.raw (\S+) (.*)" msg)]
