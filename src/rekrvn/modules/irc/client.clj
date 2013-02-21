@@ -15,16 +15,6 @@
 (def currentChannels (ref #{})) ;; id#channel (changes in real time)
 
 ;; irc commands
-(defn queueMsg [conn msg]
-  (dosync (alter conn assoc :queue (conj (:queue @conn) msg))))
-(defn joinChan [conn channel] (queueMsg conn (str "JOIN " channel)))
-(defn partChan [conn channel] (queueMsg conn (str "PART " channel)))
-(defn message [conn recipient msg] (queueMsg conn (str "PRIVMSG " recipient " :" msg)))
-;; add handling in (message) for when you're not in a channel?
-(defn quit [conn]
-  (dosync
-    (alter conn assoc :exit true)))
-
 (defn write [conn msg]
   (send-off (:out @conn)
     (fn [out]
@@ -32,6 +22,14 @@
         (.println (str msg "\r"))
         (.flush))
       out)))
+
+(defn joinChan [conn channel] (write conn (str "JOIN " channel)))
+(defn partChan [conn channel] (write conn (str "PART " channel)))
+(defn message [conn recipient msg] (write conn (str "PRIVMSG " recipient " :" msg)))
+;; add handling in (message) for when you're not in a channel?
+(defn quit [conn]
+  (dosync
+    (alter conn assoc :exit true)))
 
 (defn raw [[server cmd] replyFn]
   (when-let [conn (get @connections server)]
