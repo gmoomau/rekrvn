@@ -48,7 +48,7 @@
         sentence (second (re-find #"^(.+?\.)(?: [A-Z])?" para))]
     (if (and (not-empty disambig) (empty? sentence))
       "could mean a lot of things" ; it's a disambiguation page
-      (second (re-find #"^(.+?\.)(?: [A-Z])?" para))))) ; first sentence of summary
+      (second (re-find #"^(.+?[a-zA-Z][a-zA-Z]\.)(?: [A-Z])?" para))))) ; first sentence of summary
 
 (defn wiki [[terms] reply]
   (let [link (get-wiki-link terms)
