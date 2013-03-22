@@ -3,16 +3,17 @@
   (:use [rekrvn.config :only [google-key]])
   (:require [http.async.client :as c])
   (:use [http.async.client.request :only [url-encode]])
-  (:require [hickory.core :as h])
+  (:require [net.cgrand.enlive-html :as h])
+  (:require [clojure.string :as s])
   (:use [cheshire.core]))
 
 (def mod-name "wiki")
 (def query-base (str
-                 "https://www.googleapis.com/customsearch/v1"
-                 "?key=" google-key
-                 "&cx=016151528237284941369:nzaqho1x14w"
-                 "&alt=json"
-                 "&q="))
+                  "https://www.googleapis.com/customsearch/v1"
+                  "?key=" google-key
+                  "&cx=016151528237284941369:nzaqho1x14w"
+                  "&alt=json"
+                  "&q="))
 
 (defn web-request [url]
   (with-open [client (c/create-client)]
@@ -33,23 +34,20 @@
         wiki (choose-link parsed)]
     (:link wiki)))
 
-(defn first-p [coll]
-  (first (filter #(= :p (:tag %)) coll)))
-
-(defn strip-html [raw]
-  ;; remove anything inside html tags
-  (let [matcher #"^(.*)<[^>]+>(.*)$"]
-    (if-let [[_ & surround] (re-find matcher raw)]
-      (recur (apply str surround))
-      raw)))
+(defn strip-formatting [raw]
+  (-> raw
+    (s/replace #"<[^>]+>" "")
+    (s/replace #"\[\d+\]" "")))
 
 (defn get-blurb [url]
-  (let [full-page (web-request (str url "?action=render"))
-        tree (h/as-hickory (h/parse full-page))
-        intro (-> tree :content first :content second :content first-p h/hickory-to-html)
-        stripped (strip-html intro)]
-    ;; only return the first sentence
-    (second (re-find #"^(.+?\.) [A-Z]" stripped))))
+  (let [tree (h/html-resource (java.net.URL. url))
+        paras (h/select tree [:#mw-content-text :p])
+        disambig (h/select tree [:#disambigbox])
+        html-ps (map (comp strip-formatting (partial apply str) h/emit*) paras)
+        para (first (filter not-empty html-ps))]
+    (if (not-empty disambig)
+      "could mean a lot of things." ; it's a disambiguation page
+      (second (re-find #"^(.+?\.)(?: [A-Z])?" para))))) ; first sentence of summary
 
 (defn wiki [[terms] reply]
   (let [link (get-wiki-link terms)
