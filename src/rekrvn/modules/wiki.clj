@@ -14,6 +14,12 @@
                  "&alt=json"
                  "&q="))
 
+(defn web-request [url]
+  (with-open [client (c/create-client)]
+    (let [response (c/GET client url)]
+      (c/await response)
+      (c/string response))))
+
 (defn is-wiki-link? [result]
   (= "en.wikipedia.org" (:displayLink result)))
 
@@ -21,15 +27,32 @@
   (first (filter is-wiki-link? (:items results))))
 
 (defn get-wiki-link [terms]
-  (with-open [client (c/create-client)]
-    (let [query (str query-base (url-encode (str "wiki " terms)))
-          response (c/GET client query)
-          results (-> response c/await c/string (parse-string true))
-          wiki (choose-link results)]
-      (:link wiki))))
+  (let [query (str query-base (url-encode (str "wiki " terms)))
+        results (web-request query)
+        parsed (parse-string results true)
+        wiki (choose-link parsed)]
+    (:link wiki)))
+
+(defn first-p [coll]
+  (first (filter #(= :p (:tag %)) coll)))
+
+(defn strip-html [raw]
+  ;; remove anything inside html tags
+  (let [matcher #"^(.*)<[^>]+>(.*)$"]
+    (if-let [[_ & surround] (re-find matcher raw)]
+      (recur (apply str surround))
+      raw)))
+
+(defn get-blurb [url]
+  (let [full-page (web-request (str url "?action=render"))
+        tree (h/as-hickory (h/parse full-page))
+        intro (-> tree :content first :content second :content first-p h/hickory-to-html)
+        stripped (strip-html intro)]
+    ;; only return the first sentence
+    (second (re-find #"^(.+?\.) [A-Z]" stripped))))
 
 (defn wiki [[terms] reply]
-  (reply mod-name (get-wiki-link terms)))
+  (let [link (get-wiki-link terms)]
+    (reply mod-name (str link " - " (get-blurb link)))))
 
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.wiki (.+)$" wiki)
-
