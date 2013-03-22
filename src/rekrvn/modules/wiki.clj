@@ -52,7 +52,8 @@
     (second (re-find #"^(.+?\.) [A-Z]" stripped))))
 
 (defn wiki [[terms] reply]
-  (let [link (get-wiki-link terms)]
-    (reply mod-name (str link " - " (get-blurb link)))))
+  (let [link (get-wiki-link terms)
+        blurb (get-blurb link)]
+    (reply mod-name (str link (when blurb (str " - " blurb))))))
 
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.wiki (.+)$" wiki)
