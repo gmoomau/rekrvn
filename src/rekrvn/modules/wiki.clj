@@ -3,6 +3,7 @@
   (:use [rekrvn.config :only [google-key]])
   (:require [http.async.client :as c])
   (:use [http.async.client.request :only [url-encode]])
+  (:require [hickory.core :as h])
   (:use [cheshire.core]))
 
 (def mod-name "wiki")
