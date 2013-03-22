@@ -21,7 +21,7 @@
 (defn modload [modId]
   (let [module (symbol (str "rekrvn.modules." modId))]
     (try
-      (require module :reload)
+      (require module :reload-all)
       (catch Exception e (println (str "Caught exception: " (.getMessage e)))))))
 
 (defn reload [modId]
