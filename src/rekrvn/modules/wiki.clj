@@ -44,9 +44,10 @@
         paras (h/select tree [:#mw-content-text :p])
         disambig (h/select tree [:#disambigbox])
         html-ps (map (comp strip-formatting (partial apply str) h/emit*) paras)
-        para (first (filter not-empty html-ps))]
-    (if (not-empty disambig)
-      "could mean a lot of things." ; it's a disambiguation page
+        para (first (filter not-empty html-ps))
+        sentence (second (re-find #"^(.+?\.)(?: [A-Z])?" para))]
+    (if (and (not-empty disambig) (empty? sentence))
+      "could mean a lot of things" ; it's a disambiguation page
       (second (re-find #"^(.+?\.)(?: [A-Z])?" para))))) ; first sentence of summary
 
 (defn wiki [[terms] reply]
