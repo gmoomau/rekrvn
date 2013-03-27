@@ -48,4 +48,4 @@
           (reply modName (str "No quotes matching \"" terms "\" found.")))))
     (mongo/disconnect!)))
 
-(hub/addListener modName #"^irc.*PRIVMSG #(\S+) :\.quote(?: (\S+)(?: (.+))?)?$" quotes)
+(hub/addListener modName #"^irc.*PRIVMSG #(\S+) :\.quote(?: (\S+)(?: (.+))?)?\s*$" quotes)
