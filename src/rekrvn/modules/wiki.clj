@@ -59,5 +59,4 @@
     (reply mod-name (str link (when blurb (str " - " blurb))))))
 
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.wiki (.+)$" wiki)
-(hub/addListener mod-name #":?(\S+en\.wikipedia\.org/wiki/\S+)" trigger-from-link)
-;; ^ that regex is weird but irc PRIVMSGs break it without the :? in front
+(hub/addListener mod-name #"(https?://en\.wikipedia\.org/wiki/\S+)" trigger-from-link)
