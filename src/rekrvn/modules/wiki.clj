@@ -50,9 +50,14 @@
       "could mean a lot of things" ; it's a disambiguation page
       (second (re-find #"^(.+?[a-zA-Z][a-zA-Z]\.)(?: [A-Z])?" para))))) ; first sentence of summary
 
+(defn trigger-from-link [[link] reply]
+  (reply mod-name (get-blurb link)))
+
 (defn wiki [[terms] reply]
   (let [link (get-wiki-link terms)
         blurb (get-blurb link)]
     (reply mod-name (str link (when blurb (str " - " blurb))))))
 
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.wiki (.+)$" wiki)
+(hub/addListener mod-name #":?(\S+en\.wikipedia\.org/wiki/\S+)" trigger-from-link)
+;; ^ that regex is weird but irc PRIVMSGs break it without the :? in front
