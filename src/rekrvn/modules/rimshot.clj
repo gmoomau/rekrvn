@@ -9,5 +9,5 @@
 
 (hub/addListener modName #"^irc.*PRIVMSG \S+ :(\.(?:instant)?rimshot)$" (fn [_ refn] (refn modName rimShot)))
 (hub/addListener modName #"^irc.*PRIVMSG \S+ :(\.(?:sad)?trombone)$" (fn [_ refn] (refn modName trombone)))
-(hub/addListener modName #"^irc.*PRIVMSG \S+ :(\.kha+n)$" (fn [_ refn] (refn modName khan)))
+(hub/addListener modName #"(?i)^irc.*PRIVMSG \S+ :(\.kha+n)$" (fn [_ refn] (refn modName khan)))
 

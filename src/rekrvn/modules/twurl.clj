@@ -8,7 +8,10 @@
   (reduce #(clojure.string/replace %1 (:url %2) (:expanded_url %2)) text urls))
 
 (defn plaintext [text]
-  (clojure.string/replace text "&amp;" "&"))
+  (-> text
+    (clojure.string/replace "&gt;" ">")
+    (clojure.string/replace "&lt;" "<")
+    (clojure.string/replace "&amp;" "&")))
 
 (defn bold [text] (when text (str (char 2) text (char 15))))
 ;; 0x02 bolds in irc and 0x0F (decimal 15) removes formatting

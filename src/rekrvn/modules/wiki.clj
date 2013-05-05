@@ -48,7 +48,9 @@
         sentence (second (re-find #"^(.+?\.)(?: [A-Z])?" para))]
     (if (and (not-empty disambig) (empty? sentence))
       "could mean a lot of things" ; it's a disambiguation page
-      (second (re-find #"^(.+?[a-zA-Z][a-zA-Z]\.)(?: [A-Z])?" para))))) ; first sentence of summary
+      (if-let [blurb (second (re-find #"^(.+?[a-zA-Z][a-zA-Z]\.)(?: [A-Z])?" para))]
+        blurb
+        "couldn't figure out the description")))) ; first sentence of summary
 
 (defn trigger-from-link [[link] reply]
   (reply mod-name (get-blurb link)))
@@ -56,7 +58,7 @@
 (defn wiki [[terms] reply]
   (let [link (get-wiki-link terms)
         blurb (get-blurb link)]
-    (reply mod-name (str link (when blurb (str " - " blurb))))))
+    (reply mod-name (str link " - " blurb))))
 
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.wiki (.+)$" wiki)
 (hub/addListener mod-name #"(https?://en\.wikipedia\.org/wiki/\S+)" trigger-from-link)
