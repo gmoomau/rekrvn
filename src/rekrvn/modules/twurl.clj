@@ -1,8 +1,21 @@
 (ns rekrvn.modules.twurl
   (:require [rekrvn.hub :as hub])
-  (:require [http.async.client :as c])
   (:use [cheshire.core])
-  )
+  (:use [rekrvn.config :only [twitter-creds]])
+  ;; consumer-key, consumer-token, user-token, user-secret
+  (:use
+    [twitter.oauth]
+    [twitter.callbacks]
+    [twitter.callbacks.handlers]
+    [twitter.api.restful])
+  (:import (twitter.callbacks.protocols AsyncSingleCallback)))
+
+(def mod-name "twurl")
+
+(def my-creds (make-oauth-creds (:consumer-key twitter-creds)
+                                (:consumer-secret twitter-creds)
+                                (:user-token twitter-creds)
+                                (:user-secret twitter-creds)))
 
 (defn expand-links [text urls]
   (reduce #(clojure.string/replace %1 (:url %2) (:expanded_url %2)) text urls))
@@ -18,21 +31,14 @@
 
 (defn niceify [tweet]
   (when-let [user-string (bold (:screen_name (:user tweet)))]
-    (if (:retweeted_status tweet)
-      (str user-string " RT @" (niceify (:retweeted_status tweet)))
-      (str user-string " " (expand-links (plaintext (:text tweet)) (:urls (:entities tweet)))))))
+    (str user-string " " (expand-links (plaintext (:text tweet)) (:urls (:entities tweet))))))
 
-(defn api-lookup [id]
-  (with-open [client (c/create-client)]
-    (let [url (str "http://api.twitter.com/1/statuses/show/" id ".json?include_entities=1")
-          response (c/GET client url)]
-      (c/await response)
-      (c/string response))))
+(defn get-tweet [id]
+  (:body (statuses-show-id :oauth-creds my-creds
+                           :params {:id id :include_entities true})))
 
 (defn twurl [[tweetid] reply]
-  (when-let [jsn (api-lookup tweetid)]
-    (let [parsed (parse-string jsn true)
-          msg (niceify parsed)]
-      (reply "twurl" msg))))
+  (when-let [msg (niceify (get-tweet tweetid))]
+    (reply mod-name msg)))
 
-(hub/addListener "twurl" #"https?://\S*twitter\.com\S*/status(?:es)?/(\d+)" twurl)
+(hub/addListener mod-name #"https?://\S*twitter\.com\S*/status(?:es)?/(\d+)" twurl)
