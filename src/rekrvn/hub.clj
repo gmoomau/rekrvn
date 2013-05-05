@@ -6,7 +6,7 @@
 ;; string content fn reply
 (defn broadcast
   ([content] (broadcast content (fn [& args])))
-  ([content reply] (broadcast content (fn [& args]) (fn [_] true)))
+  ([content reply] (broadcast content reply (fn [_] true)))
   ([content reply filter-fn]
    (doseq [{matcher :matcher act-fn :action mod-name :mod} @listeners]
      (when (filter-fn mod-name)
