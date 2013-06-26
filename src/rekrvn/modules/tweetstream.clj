@@ -6,8 +6,7 @@
         [twitter.oauth]
         [twitter.callbacks]
         [twitter.callbacks.handlers]
-        [twitter.api.streaming]
-        [twitter.api.restful])
+        [twitter.api.streaming])
   (:require [http.async.client :as ac])
   (:import (twitter.callbacks.protocols AsyncStreamingCallback)
            (java.lang Thread)))
@@ -61,14 +60,12 @@
 (defn open-user-stream []
   (user-stream :oauth-creds my-creds :callbacks *custom-streaming-callback*))
 
-(defn stream-loop-for-some-reason [pause]
+(defn start-getting-stream [pause]
   ;; pause is for exponential delay on retries if i ever bother to implement that
-  (alter-var-root #'*read-eval* (constantly false))
-  (loop [^:dynamic *response* (open-user-stream)]
+  (let [^:dynamic *response* (open-user-stream)]
     (do
-      (Thread/sleep 120000)
-      (:cancel (meta *response*))
-      (recur (open-user-stream)))))
+      (Thread/sleep 60000); sleep for a minute, then cancel the async call
+      (:cancel (meta *response*)))))
 
 ;;;;;;;;;;; this kicks off stuff in a thread or whatever
-(doto (Thread. #(stream-loop-for-some-reason 1)) (.start))
+(doto (Thread. #(start-getting-stream 1)) (.start))
