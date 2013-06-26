@@ -45,12 +45,12 @@
         disambig (h/select tree [:#disambigbox])
         html-ps (map (comp strip-formatting (partial apply str) h/emit*) paras)
         para (first (filter not-empty html-ps))
-        sentence (second (re-find #"^(.+?\.)(?: [A-Z])?" para))]
-    (if (and (not-empty disambig) (empty? sentence))
-      "could mean a lot of things" ; it's a disambiguation page
-      (if-let [blurb (second (re-find #"^(.+?[a-zA-Z][a-zA-Z]\.)(?: [A-Z])?" para))]
-        blurb
-        "couldn't figure out the description")))) ; first sentence of summary
+        blurb (second (re-find #"^(.+?[a-zA-Z][a-zA-Z]\.)(?: [A-Z])?" para))]
+    (if (not-empty blurb)
+      blurb
+      (if (not-empty disambig)
+        "could mean a lot of things" ; it's a disambiguation page
+        "couldn't figure out the description")))) ; couldn't find a blurb
 
 (defn trigger-from-link [[link] reply]
   (reply mod-name (get-blurb link)))

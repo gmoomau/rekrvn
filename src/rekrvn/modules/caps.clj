@@ -5,7 +5,7 @@
 (def modName "caps")
 
 (defn caps [[channel line] reply]
-  (if-let [[_ term] (re-matches #"STOP YELLING (.+)" line)]
+  (if-let [[_ term] (re-matches #"STOP (?:YELLING|SHOUTING) (.+)" line)]
     (do
       (mongo/connect!)
       (if (= 0 (.getN (mongo/remove modName {:channel channel :text term})))
