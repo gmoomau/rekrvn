@@ -128,6 +128,13 @@
              :state :voting})
      true)))
 
+(defn update-player [name vals]
+  (let [players (:players @game-state)]
+    (map (fn [p]
+           (if (= name (:name p))
+             (conj player vals)
+             p)))))
+
 (defn cast-vote [name vote]
   (in-state-sync
    :voting
@@ -136,5 +143,5 @@
      (let [current-vote (get-player-vote name)
            player (get-player name)]
        (when (nil? (:current-vote player))
-         ;; Set the player's vote
-         )))))
+         (update-player name {:current-vote vote})
+         true)))))
