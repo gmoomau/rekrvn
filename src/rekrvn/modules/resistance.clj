@@ -112,7 +112,7 @@
 
 (defn is-on-team? [name]
   (let [team (:current-team @game-state)]
-    (contains? team name)))
+    (some #(= name (:name %)) team)))
 
 (defn get-player [name]
   (let [players (:players @game-state)]
@@ -135,13 +135,16 @@
              (conj player vals)
              p)))))
 
+(defmacro valid-vote? [vote]
+  `(some #(= % ~vote) ["for" "against"]))
+
 (defn cast-vote [name vote]
   (in-state-sync
    :voting
-   (when (and (contains? ["for" "against"] vote)
-              (is-on-team? name))
-     (let [current-vote (get-player-vote name)
-           player (get-player name)]
-       (when (nil? (:current-vote player))
-         (update-player name {:current-vote vote})
-         true)))))
+   (when-let (and (valid-vote? vote)
+                  (is-on-team? name)
+                  (nil? (get-player-vote name)))
+     (update-player name {:current-vote vote})
+     true)))
+
+
