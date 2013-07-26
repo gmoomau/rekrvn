@@ -162,7 +162,7 @@
   "Cast a user's vote."
   (in-state-sync
    :voting
-   (when-let (and (valid-vote? vote)
+   (when (and (valid-vote? vote)
                   (is-on-team? name)
                   (nil? (get-player-vote name)))
      (alter game-state
@@ -172,4 +172,29 @@
        :mission-ready
        :vote-cast))))
 
-
+(def evaluate-mission []
+  "Determines who won the mission and updates state accordingly."
+  (in-state-sync
+   :mission-ready
+   (let [players (:players @game-state)
+         num-players (count-players)
+         [_ negs-required] (first (:missions @game-state))
+         remaining-missions (rest (:missions @game-state))
+         votes (filter #(string? (:current-vote %)) players)
+         vote-reduce-fn (fn [[for against] vote]
+                          (if (= vote "for")
+                            [(inc for) against]
+                            [for (inc against)]))
+         [for against] (reduce vote-reduce-fn votes)
+         score (:score @game-state)
+         winner (if (>= against negs-required)
+                  :spies
+                  :resistance)
+         new-score (update-in score [winner] inc)
+         leader (:leader @game-state)
+         new-leader (mod (inc leader) num-players)]
+     (alter game-state conj {:missions remaining-missions
+                             :score new-score
+                             :state :pick-team
+                             :leader new-leader})
+     winner)))
