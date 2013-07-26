@@ -90,7 +90,7 @@
                             :current-vote nil}
                            players)]
      (alter game-state conj {:players new-players})
-     true)))
+     :player-joined)))
 
 (defn start-game []
   "Initializes a game. Sets state to active, chooses teams,
@@ -104,7 +104,7 @@
                     :state :pick-team
                     :leader (rand-int num-players)}]
      (alter game-state conj new-state)
-     true)))
+     :game-started)))
 
 (defn is-player? [name]
   (let [players (:players @game-state)]
@@ -126,7 +126,7 @@
             conj
             {:current-team team
              :state :voting})
-     true)))
+     :team-ready)))
 
 (defn update-player [name vals]
   (let [players (:players @game-state)]
@@ -138,13 +138,29 @@
 (defmacro valid-vote? [vote]
   `(some #(= % ~vote) ["for" "against"]))
 
+(defn votes-cast []
+  (let [players (:players @game-state)
+        reduce-fn (fn [l r]
+                    (+ l (if (nil? (:current-vote r)) 0 1)))]
+    (reduce reduce-fn 0 players)))
+
+(defn mission-ready? []
+  (let [current-mission (first (:missions @game-state))
+        mission-count (first current-mission)
+        votes-cast (votes-cast)]
+    (= votes-cast mission-count)))
+
 (defn cast-vote [name vote]
   (in-state-sync
    :voting
    (when-let (and (valid-vote? vote)
                   (is-on-team? name)
                   (nil? (get-player-vote name)))
-     (update-player name {:current-vote vote})
-     true)))
+     (alter game-state
+            conj
+            {:players (update-player name {:current-vote vote})})
+     (if (mission-ready?)
+       :mission-ready
+       :vote-cast))))
 
 
