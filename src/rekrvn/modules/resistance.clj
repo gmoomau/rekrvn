@@ -107,18 +107,22 @@
      :game-started)))
 
 (defn is-player? [name]
+  "Verify the existence of a player with the name <name>"
   (let [players (:players @game-state)]
     (any? #(= (:name %) name) players)))
 
 (defn is-on-team? [name]
+  "Verify <name> is on the current name."
   (let [team (:current-team @game-state)]
     (some #(= name (:name %)) team)))
 
 (defn get-player [name]
+  "Retrieve the given player from the list."
   (let [players (:players @game-state)]
     (some #(= (:name %) name) players)))
 
 (defn pick-team [team]
+  "Allow the current leader to choose their team."
   (in-state-sync
    :pick-team
    (when (every? is-player? team)
@@ -129,6 +133,7 @@
      :team-ready)))
 
 (defn update-player [name vals]
+  "Update the player with the values in vals."
   (let [players (:players @game-state)]
     (map (fn [p]
            (if (= name (:name p))
@@ -136,21 +141,25 @@
              p)))))
 
 (defmacro valid-vote? [vote]
+  "Verify the vote is for or against."
   `(some #(= % ~vote) ["for" "against"]))
 
 (defn votes-cast []
+  "Return the number of votes already cast."
   (let [players (:players @game-state)
         reduce-fn (fn [l r]
                     (+ l (if (nil? (:current-vote r)) 0 1)))]
     (reduce reduce-fn 0 players)))
 
 (defn mission-ready? []
+  "Return whether or not the requisite votes have been placed."
   (let [current-mission (first (:missions @game-state))
         mission-count (first current-mission)
         votes-cast (votes-cast)]
     (= votes-cast mission-count)))
 
 (defn cast-vote [name vote]
+  "Cast a user's vote."
   (in-state-sync
    :voting
    (when-let (and (valid-vote? vote)
