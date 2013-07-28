@@ -2,6 +2,8 @@
   (:require [rekrvn.hub :as hub])
   (:require [clojure.string :as s]))
 
+(def mod-name "resistance")
+
 ;; Initial game state
 
 (def initial-game-state
@@ -16,12 +18,12 @@
 
 ;; Team balancing. Resistance / Spies.
 
-(defmacro gen-teams [r s]
+(defn gen-teams [r s]
   "Generate a team with <r> resistance members and
    <s> spies."
-  `(concat
-    (repeat ~r :resistance)
-    (repeat ~s :spies)))
+  (concat
+   (repeat r :resistance)
+   (repeat s :spies)))
 
 (def team-balances
   "The balances of resistance vs spies for valid game sizes."
@@ -79,7 +81,12 @@
 
 ;; User actions
 
-(def join-game [name]
+(defn is-player? [name]
+  "Verify the existence of a player with the name <name>"
+  (let [players (:players @game-state)]
+    (some #(= (:name %) name) players)))
+
+(defn join-game [name]
   "Adds a user to the game if the game has not started.
    Returns true on success and nil on failure."
   (in-state-sync
@@ -89,8 +96,13 @@
                             :team nil
                             :current-vote nil}
                            players)]
-     (alter game-state conj {:players new-players})
-     :player-joined)))
+     (if (< (count players) 10)
+       (if (not (is-player? name))
+         (do
+           (alter game-state conj {:players new-players})
+           :player-joined)
+         :already-joined)
+       :max-players))))
 
 (defn start-game []
   "Initializes a game. Sets state to active, chooses teams,
@@ -98,18 +110,15 @@
   (in-state-sync
    :inactive
    (let [players (:players @game-state)
-         num-players (count players)
-         new-state {:players (set-teams players)
-                    :missions (get-mission-team-sizes num-players)
-                    :state :pick-team
-                    :leader (rand-int num-players)}]
-     (alter game-state conj new-state)
-     :game-started)))
-
-(defn is-player? [name]
-  "Verify the existence of a player with the name <name>"
-  (let [players (:players @game-state)]
-    (any? #(= (:name %) name) players)))
+         num-players (count players)]
+     (if (>= num-players 5)
+       (let [new-state {:players (set-teams players)
+                        :missions (get-mission-team-sizes num-players)
+                        :state :pick-team
+                        :leader (rand-int num-players)}]
+         (alter game-state conj new-state)
+         :game-started)
+       :not-enough-players))))
 
 (defn is-on-team? [name]
   "Verify <name> is on the current name."
@@ -137,7 +146,7 @@
   (let [players (:players @game-state)]
     (map (fn [p]
            (if (= name (:name p))
-             (conj player vals)
+             (conj p vals)
              p)))))
 
 (defmacro valid-vote? [vote]
@@ -158,6 +167,10 @@
         votes-cast (votes-cast)]
     (= votes-cast mission-count)))
 
+(defn get-player-vote [name]
+  (let [player (get-player name)]
+    (:current-vote player)))
+
 (defn cast-vote [name vote]
   "Cast a user's vote."
   (in-state-sync
@@ -172,29 +185,115 @@
        :mission-ready
        :vote-cast))))
 
-(def evaluate-mission []
+(defn tabulate-votes [[for against] vote]
+  (if (= vote "for")
+    [(inc for) against]
+    [for (inc against)]))
+
+(defn erase-votes [players]
+  (map #(conj % {:current-vote nil}) players))
+
+(defn game-over? [game-state]
+  (let [score (:score game-state)
+        resistance-score (:resistance score)
+        spies-score (:spies score)]
+    (or (when (>= spies-score 3) :spies)
+        (when (>= resistance-score 3) :resistance))))
+
+(defn evaluate-mission-helper [game-state]
+  (let [players (:players game-state)
+        num-players (count players)
+        [_ negs-required] (first (:missions game-state))
+        remaining-missions (rest (:missions game-state))
+        votes (map :current-vote
+                   (filter #(string? (:current-vote %)) players))
+        [_ against] (reduce tabulate-votes [0 0] votes)
+        score (:score game-state)
+        winner (if (>= against negs-required)
+                 :spies
+                 :resistance)
+        new-score (update-in score [winner] inc)
+        leader (:leader game-state)
+        new-leader (mod (inc leader) num-players)
+        new-players (erase-votes players)
+        new-state (if (game-over? game-state)
+                    :inactive
+                    :pick-team)]
+    [winner {:missions remaining-missions
+             :score new-score
+             :state new-state
+             :leader new-leader
+             :players new-players}]))
+
+(def sample-state-end-of-mission
+  {:state :mission-ready
+   :missions [[4 1]]
+   :players [{:name "foo"
+              :current-vote "for"}
+             {:name "bar"
+              :current-vote "for"}
+             {:name "baz"
+              :current-vote "against"}
+             {:name "qux"
+              :current-vote "for"}]
+   :score {:resistance 1
+           :spies 0}
+   :leader 3})
+
+(defn evaluate-mission []
   "Determines who won the mission and updates state accordingly."
   (in-state-sync
    :mission-ready
-   (let [players (:players @game-state)
-         num-players (count-players)
-         [_ negs-required] (first (:missions @game-state))
-         remaining-missions (rest (:missions @game-state))
-         votes (filter #(string? (:current-vote %)) players)
-         vote-reduce-fn (fn [[for against] vote]
-                          (if (= vote "for")
-                            [(inc for) against]
-                            [for (inc against)]))
-         [for against] (reduce vote-reduce-fn votes)
-         score (:score @game-state)
-         winner (if (>= against negs-required)
-                  :spies
-                  :resistance)
-         new-score (update-in score [winner] inc)
-         leader (:leader @game-state)
-         new-leader (mod (inc leader) num-players)]
-     (alter game-state conj {:missions remaining-missions
-                             :score new-score
-                             :state :pick-team
-                             :leader new-leader})
+   (let [[winner updates] (evaluate-mission-helper @game-state)]
+     (alter game-state conj updates)
      winner)))
+
+(defn handle-join [[name] reply]
+  (let [result (join-game name)]
+    (cond
+     (= result :player-joined) (dosync
+                                (let [players (:players @game-state)
+                                      names (map :name players)
+                                      name-str (s/join ", " names)
+                                      response (str name " joined the game. [" name-str "]")]
+                                  (reply mod-name response)))
+     (= result :already-joined) (reply mod-name "Player already joined.")
+     (= result :max-players) (reply mod-name "Too many players already.")
+     :else (reply mod-name "Game active. Wait until the game is over to join."))))
+
+(defn resistance? [player]
+  (= (:team player) :resistance))
+
+(defn spy? [player]
+  (= (:team player) :spies))
+
+(defn private-message [nick msg]
+  (let [msg (str mod-name " forirc " nick " " msg)]
+    (hub/broadcast msg)))
+
+(defn initial-game-message [reply]
+  (reply mod-name "Starting the game. Your team will be sent to you in a private message.")
+  (dosync
+   (let [players (:players @game-state)
+         leader-index (:leader @game-state)
+         leader (:name (nth players leader-index))
+         resistance (filter resistance? players)
+         spies (filter spy? players)
+         spies-str (fn [s]
+                     (let [cohort (filter #(not (= (:name %) s)) spies)]
+                       (s/join ", " cohort)))]
+     (doseq [r resistance]
+       (private-message r "You are on the resistance."))
+     (doseq [s spies]
+       (private-message s (str "You are a spy. Fellow spies are " (spies-str s) ".")))
+     (reply mod-name (str "Player to start is " leader ". Choose a team.")))))
+
+(defn handle-start [_ reply]
+  (let [result (start-game)]
+    (cond
+     (= result :game-started) (initial-game-message reply)
+     (= result :not-enough-players) (reply mod-name "You need a minimum of 5 players (and maximum of 10) to start.")
+     :else (reply mod-name "Game already started."))))
+
+(hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.rjoin" handle-join)
+(hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.rstart" handle-start)
