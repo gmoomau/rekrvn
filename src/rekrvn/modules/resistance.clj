@@ -180,7 +180,7 @@
 
 (defn valid-vote? [vote]
   "Verify the vote is for or against."
-  (some #(= % vote) ["for" "against"]))
+  (#{"for" "against"} vote))
 
 (defn votes-cast []
   "Return the number of votes already cast."
