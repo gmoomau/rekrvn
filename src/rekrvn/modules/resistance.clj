@@ -1,6 +1,8 @@
 (ns rekrvn.modules.resistance
   (:require [rekrvn.hub :as hub])
-  (:require [clojure.string :as s]))
+  (:require [clojure.string :as s])
+  (:require [rekrvn.config :as c])
+  (:require [rekrvn.modules.irc.client :as irc]))
 
 (def mod-name "resistance")
 
@@ -86,6 +88,16 @@
   (let [players (:players @game-state)]
     (some #(= (:name %) name) players)))
 
+(def resistance-network (:network c/resistance-config))
+(def resistance-nick (:nick c/resistance-config))
+(def resistance-channel (:channel c/resistance-config))
+
+(defn enable-user-messages [name]
+  (irc/modAllow resistance-network name mod-name))
+
+(defn disable-user-messages [name]
+  (irc/modDeny resistance-network name mod-name))
+
 (defn join-game [name]
   "Adds a user to the game if the game has not started.
    Returns true on success and nil on failure."
@@ -100,9 +112,16 @@
        (if (not (is-player? name))
          (do
            (alter game-state conj {:players new-players})
+           (enable-user-messages name)
            :player-joined)
          :already-joined)
        :max-players))))
+
+(declare private-message)
+(defn send-team-message [player]
+  (let [name (:name player)
+        team (:team player)]
+    (private-message name (str "You're on the " team))))
 
 (defn start-game []
   "Initializes a game. Sets state to active, chooses teams,
@@ -117,6 +136,8 @@
                         :state :pick-team
                         :leader (rand-int num-players)}]
          (alter game-state conj new-state)
+         (doseq [p (:players new-state)]
+           (send-team-message p))
          :game-started)
        :not-enough-players))))
 
@@ -130,16 +151,24 @@
   (let [players (:players @game-state)]
     (some #(= (:name %) name) players)))
 
-(defn pick-team [team]
+(defn leader? [name game-state]
+  (let [players (:players game-state)
+        leader-idx (:leader game-state)
+        leader (nth players leader-idx)]
+    (= (:name leader) name)))
+
+(defn pick-team [name team]
   "Allow the current leader to choose their team."
   (in-state-sync
    :pick-team
-   (when (every? is-player? team)
-     (alter game-state
-            conj
-            {:current-team team
-             :state :voting})
-     :team-ready)))
+   (if (leader? name @game-state)
+     (when (every? is-player? team)
+       (alter game-state
+              conj
+              {:current-team team
+               :state :voting})
+       :team-ready)
+     :not-leader)))
 
 (defn update-player [name vals]
   "Update the player with the values in vals."
@@ -149,9 +178,9 @@
              (conj p vals)
              p)))))
 
-(defmacro valid-vote? [vote]
+(defn valid-vote? [vote]
   "Verify the vote is for or against."
-  `(some #(= % ~vote) ["for" "against"]))
+  (some #(= % vote) ["for" "against"]))
 
 (defn votes-cast []
   "Return the number of votes already cast."
@@ -176,8 +205,8 @@
   (in-state-sync
    :voting
    (when (and (valid-vote? vote)
-                  (is-on-team? name)
-                  (nil? (get-player-vote name)))
+              (is-on-team? name)
+              (nil? (get-player-vote name)))
      (alter game-state
             conj
             {:players (update-player name {:current-vote vote})})
@@ -200,6 +229,11 @@
     (or (when (>= spies-score 3) :spies)
         (when (>= resistance-score 3) :resistance))))
 
+(defn unregister-players [players]
+  (doseq [p players]
+    (disable-user-messages (:name p)))
+  [])
+
 (defn evaluate-mission-helper [game-state]
   (let [players (:players game-state)
         num-players (count players)
@@ -207,7 +241,7 @@
         remaining-missions (rest (:missions game-state))
         votes (map :current-vote
                    (filter #(string? (:current-vote %)) players))
-        [_ against] (reduce tabulate-votes [0 0] votes)
+        [pass against] (reduce tabulate-votes [0 0] votes)
         score (:score game-state)
         winner (if (>= against negs-required)
                  :spies
@@ -215,11 +249,13 @@
         new-score (update-in score [winner] inc)
         leader (:leader game-state)
         new-leader (mod (inc leader) num-players)
-        new-players (erase-votes players)
         new-state (if (game-over? game-state)
                     :inactive
-                    :pick-team)]
-    [winner {:missions remaining-missions
+                    :pick-team)
+        new-players (if (= new-state :inactive)
+                      (unregister-players players)
+                      (erase-votes players))]
+    [[winner [pass against]] {:missions remaining-missions
              :score new-score
              :state new-state
              :leader new-leader
@@ -268,7 +304,7 @@
   (= (:team player) :spies))
 
 (defn private-message [nick msg]
-  (let [msg (str mod-name " forirc " nick " " msg)]
+  (let [msg (str mod-name " forirc " resistance-network "#" nick " " msg)]
     (hub/broadcast msg)))
 
 (defn initial-game-message [reply]
@@ -295,5 +331,45 @@
      (= result :not-enough-players) (reply mod-name "You need a minimum of 5 players (and maximum of 10) to start.")
      :else (reply mod-name "Game already started."))))
 
+(defn current-leader [game-state]
+  (let [players (:players game-state)
+        leader-idx (:leader game-state)]
+    (nth players leader-idx)))
+
+(defn start-mission [reply]
+  (let [missions (:missions @game-state)
+        mission-num (inc (- 5 (count missions)))
+        [num-players win-threshold] (first missions)
+        votes-to-win (- num-players win-threshold)
+        mission-str (str "Mission " mission-num " requires " num-players " players and " votes-to-win " votes to pass.")
+        team (:current-team @game-state)
+        team-str (str "The team for this mission is: " (s/join ", " team) ".")]
+    (reply mod-name (s/join " " [mission-str team-str "Deliberate! Be scandalous! Vote!"]))))
+
+(defn handle-choose-team [[name team-str] reply]
+  (let [team (-> team-str
+                 (s/trim)
+                 (#(s/split % #" ")))
+        leader (current-leader @game-state)
+        leader-name (:name leader)
+        result (pick-team name team)]
+    (cond (= result :team-ready) (start-mission reply)
+          (= result :not-leader) (reply mod-name (str "The leader (" leader-name ") must choose the team."))
+          :else (reply mod-name "Invalid game state. The team must be chosen at the beginning of a round."))))
+
+(defn handle-vote [[name vote] reply]
+  (let [result (cast-vote name vote)]
+    (cond (= result :mission-ready) (let [[winner [pass fail]] evaluate-mission
+                                          winner-str (if (= winner :resistance) "resistance" "spies")
+                                          winner-line (str "The " winner-str " won the round " pass " passes to " fail " fails!")]
+                                      (private-message resistance-channel winner-line))
+          (= result :vote-cast) (private-message name "Vote cast.")
+          :else (private-message name "You must be part of an active team to vote."))))
+
+(def vote-pattern
+  (re-pattern (str "^irc :(\\S+)!\\S+ PRIVMSG " resistance-nick " :\\.rvote (pass|fail)")))
+
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.rjoin" handle-join)
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.rstart" handle-start)
+(hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.rteam (.+)" handle-choose-team)
+(hub/addListener mod-name vote-pattern handle-vote)
