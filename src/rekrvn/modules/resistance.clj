@@ -56,6 +56,10 @@
    (number? info) [info 1]
    (vector? info) info))
 
+;; Global game state
+(def game-state
+  (ref initial-game-state))
+
 (defn get-mission-team-sizes [size]
   (let [mission-team-size (get mission-team-sizes size)]
     (map expand-mission-team-info mission-team-size)))
@@ -68,7 +72,7 @@
   (count (:players @game-state)))
 
 (defn get-current-mission []
-  (nth (get-mission-team-sizes (get-num-players)) (get-current-mission-num)))
+  (first (:missions @game-state)))
 
 (defn set-teams [players]
   "Given a list of players, return the players with proper
@@ -77,10 +81,6 @@
   (when-let [initial-teams (get team-balances (count players))]
     (let [assignments (shuffle initial-teams)]
       (map #(conj %1 {:team %2}) players assignments))))
-
-;; Global game state
-(def game-state
-  (ref initial-game-state))
 
 ;; Utility Fns
 
@@ -188,7 +188,8 @@
     (map (fn [p]
            (if (= name (:name p))
              (conj p vals)
-             p)))))
+             p))
+         players)))
 
 (defn valid-vote? [vote]
   "Verify the vote is for or against."
@@ -319,12 +320,16 @@
   (let [msg (str mod-name " forirc " resistance-network "#" nick " " msg)]
     (hub/broadcast msg)))
 
+(defn current-leader [game-state]
+  (let [players (:players game-state)
+        leader-idx (:leader game-state)]
+    (nth players leader-idx)))
+
+(declare mission-prompt)
 (defn initial-game-message [reply]
   (reply mod-name "Starting the game. Your team will be sent to you in a private message.")
   (dosync
    (let [players (:players @game-state)
-         leader-index (:leader @game-state)
-         leader (:name (nth players leader-index))
          resistance (filter resistance? players)
          spies (filter spy? players)
          spies-str (fn [s]
@@ -343,16 +348,13 @@
      (= result :not-enough-players) (reply mod-name "You need a minimum of 5 players (and maximum of 10) to start.")
      :else (reply mod-name "Game already started."))))
 
-(defn current-leader [game-state]
-  (let [players (:players game-state)
-        leader-idx (:leader game-state)]
-    (nth players leader-idx)))
-
 (defn mission-prompt []
   "Determines the parameters of the next mission base on the current game-state. Returns a prompt for that mission."
   (let [mission-num (inc (get-current-mission-num))
-        team-size (first (get-current-mission))]
-    (str leader " is the leader for mission " mission-num ". Choose a team of " team-size " to complete it.")))
+        team-size (first (get-current-mission))
+        leader (current-leader @game-state)
+        leader-name (:name leader)]
+    (str leader-name " is the leader for mission " mission-num ". Choose a team of " team-size " to complete it.")))
 
 (defn start-mission [reply]
   "Begins the voting after a team has been picked."
