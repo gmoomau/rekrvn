@@ -60,6 +60,16 @@
   (let [mission-team-size (get mission-team-sizes size)]
     (map expand-mission-team-info mission-team-size)))
 
+(defn get-current-mission-num []
+  (let [missions (:mission @game-state)]
+    (- 5 (count missions))))
+
+(defn get-num-players []
+  (count (:players @game-state)))
+
+(defn get-current-mission []
+  (nth (get-mission-team-sizes (get-num-players)) (get-current-mission-num)))
+
 (defn set-teams [players]
   "Given a list of players, return the players with proper
    assignments, returning nil when the number of players
@@ -162,12 +172,14 @@
   (in-state-sync
    :pick-team
    (if (leader? name @game-state)
-     (when (every? is-player? team)
-       (alter game-state
-              conj
-              {:current-team team
-               :state :voting})
-       :team-ready)
+     (if (= (first (get-current-mission)) (count team))
+       (when (every? is-player? team)
+         (alter game-state
+                conj
+                {:current-team team
+                 :state :voting})
+         :team-ready)
+       :wrong-team-size)
      :not-leader)))
 
 (defn update-player [name vals]
@@ -322,7 +334,7 @@
        (private-message r "You are on the resistance."))
      (doseq [s spies]
        (private-message s (str "You are a spy. Fellow spies are " (spies-str s) ".")))
-     (reply mod-name (str "Player to start is " leader ". Choose a team.")))))
+     (reply mod-name (mission-prompt)))))
 
 (defn handle-start [_ reply]
   (let [result (start-game)]
@@ -336,12 +348,19 @@
         leader-idx (:leader game-state)]
     (nth players leader-idx)))
 
+(defn mission-prompt []
+  "Determines the parameters of the next mission base on the current game-state. Returns a prompt for that mission."
+  (let [mission-num (inc (get-current-mission-num))
+        team-size (first (get-current-mission))]
+    (str leader " is the leader for mission " mission-num ". Choose a team of " team-size " to complete it.")))
+
 (defn start-mission [reply]
-  (let [missions (:missions @game-state)
-        mission-num (inc (- 5 (count missions)))
-        [num-players win-threshold] (first missions)
+  "Begins the voting after a team has been picked."
+  (let [mission-num-readable (inc (get-current-mission-num))
+        total-players (count (:players @game-state))
+        [num-players win-threshold] (get-current-mission)
         votes-to-win (- num-players win-threshold)
-        mission-str (str "Mission " mission-num " requires " num-players " players and " votes-to-win " votes to pass.")
+        mission-str (str "Mission " mission-num-readable " requires " votes-to-win " votes to pass.")
         team (:current-team @game-state)
         team-str (str "The team for this mission is: " (s/join ", " team) ".")]
     (reply mod-name (s/join " " [mission-str team-str "Deliberate! Be scandalous! Vote!"]))))
@@ -354,6 +373,7 @@
         leader-name (:name leader)
         result (pick-team name team)]
     (cond (= result :team-ready) (start-mission reply)
+          (= result :wrong-team-size) (reply mod-name (str "That team is the wrong size."))
           (= result :not-leader) (reply mod-name (str "The leader (" leader-name ") must choose the team."))
           :else (reply mod-name "Invalid game state. The team must be chosen at the beginning of a round."))))
 
@@ -362,7 +382,8 @@
     (cond (= result :mission-ready) (let [[winner [pass fail]] evaluate-mission
                                           winner-str (if (= winner :resistance) "resistance" "spies")
                                           winner-line (str "The " winner-str " won the round " pass " passes to " fail " fails!")]
-                                      (private-message resistance-channel winner-line))
+                                      (private-message resistance-channel winner-line)
+                                      (private-message resistance-channel (mission-prompt)))
           (= result :vote-cast) (private-message name "Vote cast.")
           :else (private-message name "You must be part of an active team to vote."))))
 
