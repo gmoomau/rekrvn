@@ -65,7 +65,7 @@
     (map expand-mission-team-info mission-team-size)))
 
 (defn get-current-mission-num []
-  (let [missions (:mission @game-state)]
+  (let [missions (:missions @game-state)]
     (- 5 (count missions))))
 
 (defn get-num-players []
@@ -154,7 +154,7 @@
 (defn is-on-team? [name]
   "Verify <name> is on the current name."
   (let [team (:current-team @game-state)]
-    (some #(= name (:name %)) team)))
+    (some #(= name %) team)))
 
 (defn get-player [name]
   "Retrieve the given player from the list."
@@ -204,7 +204,7 @@
 
 (defn mission-ready? []
   "Return whether or not the requisite votes have been placed."
-  (let [current-mission (first (:missions @game-state))
+  (let [current-mission (get-current-mission)
         mission-count (first current-mission)
         votes-cast (votes-cast)]
     (= votes-cast mission-count)))
@@ -217,9 +217,15 @@
   "Cast a user's vote."
   (in-state-sync
    :voting
-   (when (and (valid-vote? vote)
-              (is-on-team? name)
-              (nil? (get-player-vote name)))
+   (when (and (do
+                (println "got here one")
+                (valid-vote? vote))
+              (do
+                (println "got here two")
+                (is-on-team? name))
+              (do
+                (println "got here three")
+                (nil? (get-player-vote name))))
      (alter game-state
             conj
             {:players (update-player name {:current-vote vote})})
@@ -250,7 +256,7 @@
 (defn evaluate-mission-helper [game-state]
   (let [players (:players game-state)
         num-players (count players)
-        [_ negs-required] (first (:missions game-state))
+        [_ negs-required] (get-current-mission)
         remaining-missions (rest (:missions game-state))
         votes (map :current-vote
                    (filter #(string? (:current-vote %)) players))
@@ -259,7 +265,7 @@
         winner (if (>= against negs-required)
                  :spies
                  :resistance)
-        new-score (update-in score [winner] inc)
+        new-score (conj score {winner inc})
         leader (:leader game-state)
         new-leader (mod (inc leader) num-players)
         new-state (if (game-over? game-state)
@@ -269,10 +275,10 @@
                       (unregister-players players)
                       (erase-votes players))]
     [[winner [pass against]] {:missions remaining-missions
-             :score new-score
-             :state new-state
-             :leader new-leader
-             :players new-players}]))
+                              :score new-score
+                              :state new-state
+                              :leader new-leader
+                              :players new-players}]))
 
 (def sample-state-end-of-mission
   {:state :mission-ready
@@ -295,6 +301,8 @@
    :mission-ready
    (let [[winner updates] (evaluate-mission-helper @game-state)]
      (alter game-state conj updates)
+     (println (str "Made updates: " updates))
+     (println (str "Winner: " winner))
      winner)))
 
 (defn handle-join [[name] reply]
@@ -381,16 +389,17 @@
 
 (defn handle-vote [[name vote] reply]
   (let [result (cast-vote name vote)]
-    (cond (= result :mission-ready) (let [[winner [pass fail]] evaluate-mission
+    (cond (= result :mission-ready) (let [[winner [pass fail]] (evaluate-mission)
                                           winner-str (if (= winner :resistance) "resistance" "spies")
                                           winner-line (str "The " winner-str " won the round " pass " passes to " fail " fails!")]
+                                      (println winner-line)
                                       (private-message resistance-channel winner-line)
                                       (private-message resistance-channel (mission-prompt)))
           (= result :vote-cast) (private-message name "Vote cast.")
           :else (private-message name "You must be part of an active team to vote."))))
 
 (def vote-pattern
-  (re-pattern (str "^irc :(\\S+)!\\S+ PRIVMSG " resistance-nick " :\\.rvote (pass|fail)")))
+  (re-pattern (str "^irc :(\\S+)!\\S+ PRIVMSG " resistance-nick " :\\.rvote (for|against)")))
 
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.rjoin" handle-join)
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.rstart" handle-start)
