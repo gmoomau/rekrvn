@@ -18,6 +18,18 @@
    :messages [] ; queue of messages to deliver to the players
    })
 
+(def error-message-table
+  "Table of error messages in human form."
+  {:wrong-phase "You can't perform that action at this time."
+   :already-joined "You have already joined this game."
+   :max-players "There are already ten players in the game."
+   :not-enough-players "You need at least five players to start the game."
+   :wrong-team-size "Your team is either too large or too small."
+   :not-leader "You must be the leader to select a team."
+   :not-in-mission "Only members of the current team can vote."
+   :already-voted "You've already voted on this mission."
+   :invalid-vote "Invalid vote. Must vote 'for' or 'against'."})
+
 (def ^:private new-player
   {:faction nil :vote nil :is-on-team nil})
 
@@ -63,8 +75,12 @@
 
 ;;;;; Utility
 ;;;;;
-(defn assoc-error [game-state reason]
-  (conj game-state {:error reason}))
+(defn assoc-error
+  ([game-state reason]
+     (assoc-error game-state reason :broadcast))
+  ([game-state reason recipient]
+     (conj game-state {:error reason
+                       :message [(reason error-message-table)]})))
 
 (defmacro in-phase [game-state phase & forms]
   "When the game is in the given phase, evaluate the forms.
@@ -159,13 +175,11 @@
 (defn evaluate-mission [game-state]
   "Determines the outcome of a mission. Advances if necessary, otherwise
    it will end the game."
-  (in-phase
-   game-state :voting
-   (-> game-state
-       (update-score) ; reads votes, updates score accordingly
-       (reset-players) ; resets player votes & team status
-       (advance-mission) ; pops the last mission off the mission queue
-       (update-game-status)))) ; checks if the game is completed
+  (-> game-state
+      (update-score) ; reads votes, updates score accordingly
+      (reset-players) ; resets player votes & team status
+      (advance-mission) ; pops the last mission off the mission queue
+      (update-game-status))) ; checks if the game is completed
 
 (defn- evaluate-mission-if-necessary [game-state]
   "Will evaluate the success of the mission if all votes have been cast."
@@ -188,7 +202,6 @@
 
 (defn- assign-factions [players]
   "Assigns players to different factions at the start of the game."
-  ; so don't call it anywhere except at game start
   (let [num-players (count players)
         faction-split (get faction-balances num-players)
         factions (shuffle (gen-factions faction-split))
