@@ -176,7 +176,7 @@
                       (winning-faction-str score))
       game-state)))
 
-(defn evaluate-mission [game-state]
+(defn- evaluate-mission [game-state]
   "Determines the outcome of a mission. Advances if necessary, otherwise
    it will end the game."
   (-> game-state
@@ -226,16 +226,11 @@
                          "negative votes to fail.")]
     (append-message game-state :broadcast mission-str)))
 
-;;;;; Public-facing game logic
-    ; everything in this section either returns the new
-    ; game state or a map with an :error code describing
-    ; the reason that the function failed
-
-(defn add-player-to-game [game-state player-name]
+(defn- add-player-to-game [game-state player-name]
   "Adds a new player to the game state."
   (assoc-in game-state [:players player-name] new-player))
 
-(defn add-new-player-message [game-state player-name]
+(defn- add-new-player-message [game-state player-name]
   (let [players (:players game-state)
         names (keys players)
         new-names (conj names player-name)
@@ -247,12 +242,17 @@
                          names-str
                          "]"))))
 
+;;;;; Public-facing game logic
+    ; everything in this section either returns the new
+    ; game state or a map with an :error code describing
+    ; the reason that the function failed
+
 (defn join-game [game-state player-name]
   "<player-name> attempts to join the game."
   (in-phase
     game-state :inactive
     (if (< (num-players game-state) 10)
-      (if (not (is-playing? player-name))
+      (if (not (is-playing? game-state player-name))
         (-> game-state
             (add-player-to-game player-name)
             (add-new-player-message player-name))
