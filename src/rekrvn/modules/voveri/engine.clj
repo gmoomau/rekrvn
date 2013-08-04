@@ -57,15 +57,15 @@
 
 ;;;;; Utility
 ;;;;;
-(defn- error [reason]
-  {:error reason})
+(defn assoc-error [game-state reason]
+  (conj game-state {:error reason}))
 
 (defmacro in-phase [game-state phase & forms]
   "When the game is in the given phase, evaluate the forms.
    Otherwise, return nil."
   `(if (= (:phase ~game-state) ~phase)
      (do ~@forms)
-     (error :wrong-phase)))
+     (assoc-error ~game-state :wrong-phase)))
 
 (defn- num-players [game-state]
   (count (:players game-state)))
@@ -99,8 +99,8 @@
     (if (< (num-players game-state) 10)
       (if (not (is-playing? player-name))
         (update-in game-state [:players] conj player-name)
-        :already-joined)
-      :max-players)))
+        (assoc-error game-state :already-joined))
+      (assoc-error game-state :max-players))))
 
 (defn start-game [game-state]
   "Voting has ended. Start the first mission."
@@ -114,7 +114,7 @@
                          :phase :pick-team
                          :leader (nth (seq players) (rand-int num-players))}]
           new-state)
-        (error :not-enough-players)))))
+        (assoc-error game-state :not-enough-players)))))
 
 (defn pick-team [game-state player-name team]
   "Player <player> attempts to choose the team <team> for the mission."
@@ -126,8 +126,8 @@
           (conj game-state
                 {:current-team team
                  :phase :voting}))
-        :wrong-team-size)
-      :not-leader)))
+        (assoc-error game-state :wrong-team-size))
+      (assoc-error game-state :not-leader))))
 
 (defn vote [game-state player choice]
   "Player <player> attempts to vote <choice>."
