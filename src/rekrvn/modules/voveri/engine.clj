@@ -87,11 +87,12 @@
 (defn- get-current-mission [game-state]
   (first (:missions game-state)))
 
-(defn- valid-vote? [vote]
+(defn- valid-vote [vote]
   (let [vote-map {"pass" :pass "fail" :fail}]
     (get vote-map vote)))
 
 (defn- get-votes [game-state]
+  "Returns a list of all of the votes."
   (->> game-state
        :players
        (map (fn [[_ player-data]]
@@ -111,6 +112,8 @@
             votes)))
 
 (defn- get-winner [game-state]
+  "Takes a game state and returns a keyword representing the faction which
+   won the mission."
   (let [[_ votes-to-fail] (get-current-mission game-state)
         [_ fails] (process-votes game-state)]
     (if (>= fails votes-to-fail)
@@ -118,8 +121,34 @@
       :resistance)))
 
 (defn- update-score [game-state]
+  "Calculates the winner and updates the score accordingly."
   (let [winner (get-winner game-state)]
     (update-in game-state [:score winner] inc)))
+
+(defn- reset-players [game-state]
+  "Resets the players votes and team assignment."
+  (let [players (:players game-state)
+        names (keys players)
+        player-updates (zipmap names (repeat {:vote nil :is-on-team nil}))]
+    (merge-with merge players player-updates)))
+
+(defn- advance-mission [game-state]
+  "Removes the recently completed mission."
+  (update-in game-state [:missions] rest))
+
+(defn- update-game-status [game-state]
+  "Determines if either faction has won and updates the phase accordingly."
+  (let [score (:score game-state)
+        resistance-score (:resistance score)
+        spies-score (:spies score)]
+    (if (or (>= resistance-score 3)
+            (>= spies-score 3))
+      initial-game-state ; TODO: message here
+      game-state)))
+
+(defn- cast-vote [game-state player vote]
+  "Sets a users vote."
+  (update-in game-state [:players player] assoc :vote vote))
 
 (defn- leader? [game-state player-name]
   (= player-name (:leader game-state)))
@@ -178,25 +207,25 @@
         (assoc-error game-state :wrong-team-size))
       (assoc-error game-state :not-leader))))
 
-;(defn- commit-vote [game-state player choice]
-
 (defn evaluate-mission [game-state]
   "Determines the outcome of a mission. Advances if necessary, otherwise
    it will end the game."
   (in-phase
    game-state :voting
-   (let [winner (get-winner game-state)]
-     )))
+   (-> game-state
+       (update-score) ; reads votes, updates score accordingly
+       (reset-players) ; resets player votes & team status
+       (advance-mission) ; pops the last mission off the mission queue
+       (update-game-status)))) ; checks if the game is completed
 
 (defn vote [game-state player choice]
   "Player <player> attempts to vote <choice>."
   (in-phase
     game-state :voting
-    (if (valid-vote? choice)
+    (if-let [vote (valid-vote choice)]
       (if (not (:already-voted (get game-state player)))
         (if ((:current-team game-state) player)
-          (comment "votes happen here but i haven't written it yet
-                    but i added a form instead of a comment so that the ifs close correctly and stuff")
+          (cast-vote game-state player vote)
           (assoc-error game-state :not-in-mission))
         (assoc-error game-state :already-voted))
       (assoc-error game-state :invalid-vote))))
