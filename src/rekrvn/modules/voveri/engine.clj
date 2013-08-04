@@ -13,7 +13,9 @@
    :leader nil ; the one picking the team for this mission
    :team [] ; the group of players voting in the current mission
    :score {:resistance 0 ; first to 3 wins
-           :spies 0}})
+           :spies 0}
+   :messages [] ; queue of messages to deliver to the players
+   })
 
 ;; Faction balancing
 (defn- gen-factions [[r s]]
@@ -85,8 +87,41 @@
 (defn- valid-vote? [vote]
   (#{"for" "against"} vote))
 
+(defn- get-votes [game-state]
+  (->> game-state
+       :players
+       (map (fn [[_ player-data]]
+              (:vote player-data)))
+       (filter identity)))
+
+(defn- process-votes [game-state]
+  "Takes in the game state and returns a vector of two items. The first
+   item is the number of votes in favor and the second is the number
+   of votes against."
+  (let [votes (get-votes game-state)]
+    (reduce (fn [[passes fails] vote]
+              (if (= vote :pass)
+                [(inc passes) fails]
+                [passes (inc fails)]))
+            [0 0]
+            votes)))
+
+(defn- get-winner [game-state]
+  (let [[_ votes-to-fail] (get-current-mission game-state)
+        [_ fails] (process-votes game-state)]
+    (if (>= fails votes-to-fail)
+      :spies
+      :resistance)))
+
+(defn- update-score [game-state]
+  (let [winner (get-winner game-state)]
+    (update-in game-state [:score winner] inc)))
+
 (defn- leader? [game-state player-name]
   (= player-name (:name (:leader game-state))))
+
+(defn- append-message [game-state recipient message]
+  (update-in game-state [:messages] conj [recipient message]))
 
 ;;;;; Public-facing game logic
     ; everything in this section either returns the new
@@ -133,5 +168,19 @@
   "Player <player> attempts to vote <choice>."
   ;;(if (is-voting?
   )
+
+
+;; players
+;; {:faction
+;;  :vote
+;;  :is-on-team}
+
+(defn evaluate-mission [game-state]
+  "Determines the outcome of a mission. Advances if necessary, otherwise
+   it will end the game."
+  (in-phase
+   game-state :voting
+   (let [winner (get-winner game-state)]
+     )))
 
 
