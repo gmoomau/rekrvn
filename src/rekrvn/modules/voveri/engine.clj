@@ -8,12 +8,15 @@
 (def initial-game-state
   "The state of the game at startup."
   {:phase :inactive ; possible phases are :inactive, :pick-team, :voting, :mission-ready
-   :players #{} ; set of the names of players in the game
+   :players {} ; map of the names of players in the game
+               ; contains: :faction, :vote, :is-on-team
    :missions [] ; the missions remaining for this game
-   :leader nil ; the one picking the team for this mission
-   :team [] ; the group of players voting in the current mission
+   :leader nil ; the name of the person picking the team for this mission
    :score {:resistance 0 ; first to 3 wins
            :spies 0}})
+
+(def ^:private new-player
+  {:faction nil :vote nil :is-on-team nil})
 
 ;; Faction balancing
 (defn- gen-factions [[r s]]
@@ -74,7 +77,7 @@
   ((:players game-state) player-name))
 
 (defn- is-voting? [game-state player-name]
-  ((:current-team game-state) player-name))
+  (:is-on-team ((:players game-state) player-name)))
 
 (defn- get-mission-team-sizes [num-players]
   (map expand-mission-team-info (get mission-team-sizes num-players)))
@@ -83,10 +86,20 @@
   (first (:missions game-state)))
 
 (defn- valid-vote? [vote]
-  (#{"for" "against"} vote))
+  (let [vote-map {"pass" :pass "fail" :fail}]
+    (get vote-map vote)))
 
 (defn- leader? [game-state player-name]
-  (= player-name (:name (:leader game-state))))
+  (= player-name (:leader game-state)))
+
+(defn- assign-factions [players]
+  "Assigns players to different factions at the start of the game."
+  ; so don't call it anywhere except at game start
+  (let [num-players (count players)
+        faction-split (get faction-balances num-players)
+        factions (shuffle (gen-factions faction-split))
+        names (keys players)]
+    (zipmap names (map #(do {:faction %}) factions)))) 
 
 ;;;;; Public-facing game logic
     ; everything in this section either returns the new
@@ -98,7 +111,7 @@
     game-state :inactive
     (if (< (num-players game-state) 10)
       (if (not (is-playing? player-name))
-        (update-in game-state [:players] conj player-name)
+        (assoc-in game-state [:players player-name] new-player)
         (assoc-error game-state :already-joined))
       (assoc-error game-state :max-players))))
 
@@ -109,10 +122,11 @@
     (let [players (:players game-state)
           num-players (count players)]
       (if (>= num-players 2)
-        (let [new-state {:players (:players game-state)
+        (let [faction-assignments (assign-factions (:players game-state))
+              new-state {:players (merge-with merge (:players game-state) faction-assignments)
                          :missions (get-mission-team-sizes (count players))
                          :phase :pick-team
-                         :leader (nth (seq players) (rand-int num-players))}]
+                         :leader (nth (keys players) (rand-int num-players))}]
           new-state)
         (assoc-error game-state :not-enough-players)))))
 
@@ -129,9 +143,18 @@
         (assoc-error game-state :wrong-team-size))
       (assoc-error game-state :not-leader))))
 
+;(defn- commit-vote [game-state player choice]
+
+
 (defn vote [game-state player choice]
   "Player <player> attempts to vote <choice>."
-  ;;(if (is-voting?
-  )
-
-
+  (in-phase
+    game-state :voting
+    (if (valid-vote? choice)
+      (if (not (:already-voted (get game-state player)))
+        (if ((:current-team game-state) player)
+          (comment "votes happen here but i haven't written it yet
+                    but i added a form instead of a comment so that the ifs close correctly and stuff")
+          (assoc-error game-state :not-in-mission))
+        (assoc-error game-state :already-voted))
+      (assoc-error game-state :invalid-vote))))
