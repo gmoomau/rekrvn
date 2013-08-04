@@ -124,7 +124,9 @@
 (defn- update-score [game-state]
   "Calculates the winner and updates the score accordingly."
   (let [winner (get-winner game-state)]
-    (update-in game-state [:score winner] inc)))
+    (-> game-state
+        (update-in [:score winner] inc)
+        (append-message :broadcast (str "The " (name winner) " won the round!")))))
 
 (defn- reset-players [game-state]
   "Resets the players votes and team assignment."
@@ -137,6 +139,11 @@
   "Removes the recently completed mission."
   (update-in game-state [:missions] rest))
 
+(defn- winning-faction-str [score]
+  (if (> (:resistance score) (:spies score))
+    "The resistance has won the game!"
+    "The spies have won the game!"))
+
 (defn- update-game-status [game-state]
   "Determines if either faction has won and updates the phase accordingly."
   (let [score (:score game-state)
@@ -144,12 +151,37 @@
         spies-score (:spies score)]
     (if (or (>= resistance-score 3)
             (>= spies-score 3))
-      initial-game-state ; TODO: message here
+      (append-message initial-game-state
+                      :broadcast
+                      (winning-faction-str score))
+      game-state)))
+
+(defn evaluate-mission [game-state]
+  "Determines the outcome of a mission. Advances if necessary, otherwise
+   it will end the game."
+  (in-phase
+   game-state :voting
+   (-> game-state
+       (update-score) ; reads votes, updates score accordingly
+       (reset-players) ; resets player votes & team status
+       (advance-mission) ; pops the last mission off the mission queue
+       (update-game-status)))) ; checks if the game is completed
+
+(defn- evaluate-mission-if-necessary [game-state]
+  "Will evaluate the success of the mission if all votes have been cast."
+  (let [[votes-required _] (get-current-mission game-state)
+        votes (get-votes game-state)
+        num-votes (count votes)]
+    (if (= votes-required num-votes)
+      (evaluate-mission game-state)
       game-state)))
 
 (defn- cast-vote [game-state player vote]
   "Sets a users vote."
-  (update-in game-state [:players player] assoc :vote vote))
+  (-> game-state
+      (update-in [:players player] assoc :vote vote)
+      (append-message player "Vote cast.")
+      (evaluate-mission-if-necessary)))
 
 (defn- leader? [game-state player-name]
   (= player-name (:leader game-state)))
@@ -244,17 +276,6 @@
             (append-message new-state :broadcast "Team selected. Go forth and vote!"))
         (assoc-error game-state :wrong-team-size))
       (assoc-error game-state :not-leader))))
-
-(defn evaluate-mission [game-state]
-  "Determines the outcome of a mission. Advances if necessary, otherwise
-   it will end the game."
-  (in-phase
-   game-state :voting
-   (-> game-state
-       (update-score) ; reads votes, updates score accordingly
-       (reset-players) ; resets player votes & team status
-       (advance-mission) ; pops the last mission off the mission queue
-       (update-game-status)))) ; checks if the game is completed
 
 (defn vote [game-state player choice]
   "Player <player> attempts to vote <choice>."
