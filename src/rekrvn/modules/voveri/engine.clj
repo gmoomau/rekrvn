@@ -261,8 +261,8 @@
   (in-phase
     game-state :voting
     (if-let [vote (valid-vote choice)]
-      (if (not (:already-voted (get game-state player)))
-        (if ((:current-team game-state) player)
+      (if (not (get-in game-state [:players name :vote]))
+        (if (get-in game-state [:players name :is-on-team])
           (cast-vote game-state player vote)
           (assoc-error game-state :not-in-mission))
         (assoc-error game-state :already-voted))
