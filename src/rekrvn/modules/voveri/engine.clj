@@ -233,8 +233,7 @@
 (defn- add-new-player-message [game-state player-name]
   (let [players (:players game-state)
         names (keys players)
-        new-names (conj names player-name)
-        names-str (s/join ", " new-names)]
+        names-str (s/join ", " names)]
     (append-message game-state
                     :broadcast
                     (str player-name
