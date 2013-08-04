@@ -82,6 +82,10 @@
      (conj game-state {:error reason
                        :message [(reason error-message-table)]})))
 
+(defn- append-message [game-state recipient message]
+  "Adds a message to the message queue."
+  (update-in game-state [:messages] conj [recipient message]))
+
 (defmacro in-phase [game-state phase & forms]
   "When the game is in the given phase, evaluate the forms.
    Otherwise, return nil."
@@ -208,10 +212,6 @@
         names (keys players)]
     (zipmap names (map #(do {:faction %}) factions)))) 
 
-(defn- append-message [game-state recipient message]
-  "Adds a message to the message queue."
-  (update-in game-state [:messages] conj [recipient message]))
-
 (defn- add-mission-message [game-state]
   (let [[num-players to-fail] (get-current-mission game-state)
         mission-num (inc (- 5 (count (:missions game-state))))
@@ -278,17 +278,17 @@
 (defn pick-team [game-state player-name team]
   "Player <player> attempts to choose the team <team> for the mission."
   (in-phase
-    game-state :pick-team
-    (if (leader? game-state player-name)
-      (if (= (first (get-current-mission game-state)) (count team))
-        (when (every? (partial is-playing? game-state) team)
-          (let [new-state (reduce (fn [memo team-member]
-                                    (update-in memo [:players team-member :is-on-team] true)) 
-                                  game-state
-                                  team)]
-            (append-message new-state :broadcast "Team selected. Go forth and vote!"))
-        (assoc-error game-state :wrong-team-size))
-      (assoc-error game-state :not-leader))))
+   game-state :pick-team
+   (if (leader? game-state player-name)
+     (if (= (first (get-current-mission game-state)) (count team))
+       (when (every? (partial is-playing? game-state) team)
+         (let [new-state (reduce (fn [memo team-member]
+                                   (update-in memo [:players team-member :is-on-team] true)) 
+                                 game-state
+                                 team)]
+           (append-message new-state :broadcast "Team selected. Go forth and vote!"))
+         (assoc-error game-state :wrong-team-size))
+       (assoc-error game-state :not-leader)))))
 
 (defn vote [game-state player choice]
   "Player <player> attempts to vote <choice>."
