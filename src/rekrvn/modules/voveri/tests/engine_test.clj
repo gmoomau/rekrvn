@@ -45,7 +45,14 @@
            {:resistance 0 :spies 0}))
     (let [missions (:missions game-state)]
       (is (= (count missions) 5))
-      (is (= (first missions) [2 1]))
-      (is (and (< (:leader game-state 5))
-               (>= (:leader game-state 0))))
-      )))
+      (is (= (first missions) [2 1])))
+    (is (and (< (:leader game-state 5))
+             (>= (:leader game-state 0))))
+    (let [messages (:messages game-state)]
+      (is (= (count messages) 6))
+      (is (= (first messages)
+             [:broadcast "p1 joined the game. [p1]"]))
+      (is (= (nth messages 1)
+             [:broadcast "p2 joined the game. [p2, p1]"]))
+      (is (re-find #"The current mission \(1\) is led by p[1-5] and requires 2 players and 1 negative votes to fail\."
+                   (first (rest (nth messages 5))))))))

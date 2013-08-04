@@ -223,7 +223,7 @@
                          num-players
                          " players and "
                          to-fail
-                         "negative votes to fail.")]
+                         " negative votes to fail.")]
     (append-message game-state :broadcast mission-str)))
 
 (defn- add-player-to-game [game-state player-name]
