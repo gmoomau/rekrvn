@@ -1,4 +1,5 @@
-(ns rekrvn.modules.voveri.engine)
+(ns rekrvn.modules.voveri.engine
+  (:require [clojure.string :as s]))
 
 ;; purely functional game engine
 ;; performs rule checking and validation
@@ -163,24 +164,58 @@
     (zipmap names (map #(do {:faction %}) factions)))) 
 
 (defn- append-message [game-state recipient message]
+  "Adds a message to the message queue."
   (update-in game-state [:messages] conj [recipient message]))
+
+(defn- add-mission-message [game-state]
+  (let [[num-players to-fail] (get-current-mission game-state)
+        mission-num (inc (- 5 (count (:missions game-state))))
+        mission-str (str "The current mission ("
+                         mission-num
+                         ") is led by "
+                         (:leader game-state)
+                         " and requires "
+                         num-players
+                         " players and "
+                         to-fail
+                         "negative votes to fail.")]
+    (append-message game-state :broadcast mission-str)))
 
 ;;;;; Public-facing game logic
     ; everything in this section either returns the new
     ; game state or a map with an :error code describing
     ; the reason that the function failed
+
+(defn add-player-to-game [game-state player-name]
+  "Adds a new player to the game state."
+  (assoc-in game-state [:players player-name] new-player))
+
+(defn add-new-player-message [game-state player-name]
+  (let [players (:players game-state)
+        names (keys players)
+        new-names (conj names player-name)
+        names-str (s/join ", " new-names)]
+    (append-message game-state
+                    :broadcast
+                    (str player-name
+                         " joined the game. ["
+                         names-str
+                         "]"))))
+
 (defn join-game [game-state player-name]
   "<player-name> attempts to join the game."
   (in-phase
     game-state :inactive
     (if (< (num-players game-state) 10)
       (if (not (is-playing? player-name))
-        (assoc-in game-state [:players player-name] new-player)
+        (-> game-state
+            (add-player-to-game player-name)
+            (add-new-player-message player-name))
         (assoc-error game-state :already-joined))
       (assoc-error game-state :max-players))))
 
 (defn start-game [game-state]
-  "Voting has ended. Start the first mission."
+  "Joining has ended. Start the first mission."
   (in-phase
     game-state :inactive
     (let [players (:players game-state)
@@ -191,8 +226,9 @@
                          :missions (get-mission-team-sizes (count players))
                          :phase :pick-team
                          :leader (nth (keys players) (rand-int num-players))}]
-          new-state)
+          (add-mission-message new-state))
         (assoc-error game-state :not-enough-players)))))
+
 
 (defn pick-team [game-state player-name team]
   "Player <player> attempts to choose the team <team> for the mission."
@@ -201,9 +237,11 @@
     (if (leader? game-state player-name)
       (if (= (first (get-current-mission game-state)) (count team))
         (when (every? (partial is-playing? game-state) team)
-          (conj game-state
-                {:current-team team
-                 :phase :voting}))
+          (let [new-state (reduce (fn [memo team-member]
+                                    (update-in memo [:players team-member :is-on-team] true)) 
+                                  game-state
+                                  team)]
+            (append-message new-state :broadcast "Team selected. Go forth and vote!"))
         (assoc-error game-state :wrong-team-size))
       (assoc-error game-state :not-leader))))
 
