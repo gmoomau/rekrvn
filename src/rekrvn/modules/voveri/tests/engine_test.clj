@@ -37,5 +37,15 @@
   (start-game five-player-game-state))
 
 (deftest start-game-test
-  (is (= (:phase five-player-game-started-state)
-         :pick-team)))
+  (let [game-state five-player-game-started-state]
+    (is (= (:phase game-state)
+           :pick-team))
+    (is (= (:leader game-state)))
+    (is (= (:score game-state)
+           {:resistance 0 :spies 0}))
+    (let [missions (:missions game-state)]
+      (is (= (count missions) 5))
+      (is (= (first missions) [2 1]))
+      (is (and (< (:leader game-state 5))
+               (>= (:leader game-state 0))))
+      )))

@@ -261,17 +261,18 @@
 (defn start-game [game-state]
   "Joining has ended. Start the first mission."
   (in-phase
-    game-state :inactive
-    (let [players (:players game-state)
-          num-players (count players)]
-      (if (>= num-players 2)
-        (let [faction-assignments (assign-factions (:players game-state))
-              new-state {:players (merge-with merge (:players game-state) faction-assignments)
-                         :missions (get-mission-team-sizes (count players))
-                         :phase :pick-team
-                         :leader (nth (keys players) (rand-int num-players))}]
-          (add-mission-message new-state))
-        (assoc-error game-state :not-enough-players)))))
+   game-state :inactive
+   (let [players (:players game-state)
+         num-players (count players)]
+     (if (>= num-players 2)
+       (let [faction-assignments (assign-factions (:players game-state))
+             new-state-partial {:players (merge-with merge (:players game-state) faction-assignments)
+                                :missions (get-mission-team-sizes (count players))
+                                :phase :pick-team
+                                :leader (nth (keys players) (rand-int num-players))}
+             new-state (conj game-state new-state-partial)]
+         (add-mission-message new-state))
+       (assoc-error game-state :not-enough-players)))))
 
 
 (defn pick-team [game-state player-name team]
