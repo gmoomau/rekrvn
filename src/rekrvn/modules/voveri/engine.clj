@@ -283,12 +283,14 @@
      (if (= (first (get-current-mission game-state)) (count team))
        (when (every? (partial is-playing? game-state) team)
          (let [new-state (reduce (fn [memo team-member]
-                                   (update-in memo [:players team-member :is-on-team] true)) 
+                                   (assoc-in memo [:players team-member :is-on-team] true))
                                  game-state
                                  team)]
-           (append-message new-state :broadcast "Team selected. Go forth and vote!"))
-         (assoc-error game-state :wrong-team-size))
-       (assoc-error game-state :not-leader)))))
+           (-> new-state
+               (append-message :broadcast "Team selected. Go forth and vote!")
+               (conj {:phase :voting}))))
+       (assoc-error game-state :wrong-team-size))
+     (assoc-error game-state :not-leader))))
 
 (defn vote [game-state player choice]
   "Player <player> attempts to vote <choice>."

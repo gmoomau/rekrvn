@@ -23,7 +23,15 @@
              (join-game "cole")
              (join-game "grog")
              {"cole" {:faction nil :vote nil :is-on-team nil}
-              "grog" {:faction nil :vote nil :is-on-team nil}}))))
+              "grog" {:faction nil :vote nil :is-on-team nil}})))
+  (let [double-join (-> initial-game-state
+                        (join-game "cole")
+                        (join-game "cole"))
+        messages (:messages double-join)]
+    (is (= (:error double-join) :already-joined))
+    (is (= (count messages) 1))
+    (is (= (first messages)
+           [:broadcast "You have already joined this game."]))))
 
 (def five-player-game-state
   (-> initial-game-state
@@ -46,8 +54,7 @@
     (let [missions (:missions game-state)]
       (is (= (count missions) 5))
       (is (= (first missions) [2 1])))
-    (is (and (< (:leader game-state 5))
-             (>= (:leader game-state 0))))
+    (is (re-find #"(p1|p2|p3|p4|p5)" (:leader game-state)))
     (let [messages (:messages game-state)]
       (is (= (count messages) 6))
       (is (= (first messages)
@@ -56,3 +63,14 @@
              [:broadcast "p2 joined the game. [p2, p1]"]))
       (is (re-find #"The current mission \(1\) is led by p[1-5] and requires 2 players and 1 negative votes to fail\."
                    (first (rest (nth messages 5))))))))
+
+(defmacro returns-error [error expr]
+  `(is (= (:error ~expr) ~error)))
+
+(deftest pick-team-test
+  (let [game-state five-player-game-started-state
+        leader (:leader game-state)]
+    (returns-error :not-leader (pick-team game-state "foo" "foo bar"))
+    (returns-error :wrong-team-size (pick-team game-state leader "foo bar baz"))
+    (let [picked-state (pick-team game-state leader ["p1" "p2"])]
+      (is (= (:phase picked-state) :voting)))))
