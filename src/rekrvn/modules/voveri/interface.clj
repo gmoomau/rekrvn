@@ -8,12 +8,13 @@
 (def mod-name "voveri.interface")
 
 ;; chat stuff
-(def irc-network (:network c/resistance))
-(def irc-nick (:nick c/resistance))
-(def irc-channel (:nick c/resistance))
+(def irc-network (:network rekrvn.config/resistance))
+(def irc-nick (:nick rekrvn.config/resistance))
+(def irc-channel (:channel rekrvn.config/resistance))
 
 (defn private-message [nick msg]
-  (let [msg (str mod-name " forirc " (:network resistance) "#" nick " " msg)]
+  (let [recip (if (= nick :broadcast) irc-channel nick)
+        msg (str mod-name " forirc " irc-network "#" recip " " msg)]
     (hub/broadcast msg)))
 
 ;; game state
@@ -21,12 +22,11 @@
 
 ;; handlers
 (defn handle-result [result]
-  (let [result (e/join-game @game-state nick)]
-    (doseq [[recip msg] (:messages result)]
-      (private-message recip msg))
-    (when (not (:error result))
-      (dosync
-        (ref-set game-state result)))))
+  (doseq [[recip msg] (:messages result)]
+    (private-message recip msg))
+  (when (not (:error result))
+    (dosync
+      (ref-set game-state (assoc result :messages [])))))
 
 (defn handle-join [[nick] _]
   (handle-result (e/join-game @game-state nick)))
@@ -35,7 +35,7 @@
   (handle-result (e/start-game @game-state)))
 
 (defn handle-choose-team [[player team-str] _]
-  (let [team (-> team-str
+  (let [team (->> team-str
                (s/trim)
                (#(s/split % #"\s+"))
                (reduce conj #{}))]
