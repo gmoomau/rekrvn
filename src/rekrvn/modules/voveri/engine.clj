@@ -188,7 +188,7 @@
       (append-message initial-game-state
                       :broadcast
                       (winning-faction-str score))
-      game-state)))
+      (assoc game-state :phase :pick-team))))
 
 (defn- evaluate-mission [game-state]
   "Determines the outcome of a mission. Advances if necessary, otherwise
