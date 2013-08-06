@@ -80,7 +80,7 @@
      (assoc-error game-state reason :broadcast))
   ([game-state reason recipient]
      (conj game-state {:error reason
-                       :message [(reason error-message-table)]})))
+                       :messages [[recipient (reason error-message-table)]]})))
 
 (defn- append-message [game-state recipient message]
   "Adds a message to the message queue."
@@ -120,6 +120,7 @@
               (:vote player-data)))
        (filter identity)))
 
+
 (defn- process-votes [game-state]
   "Takes in the game state and returns a vector of two items. The first
    item is the number of votes in favor and the second is the number
@@ -152,8 +153,20 @@
   "Resets the players votes and team assignment."
   (let [players (:players game-state)
         names (keys players)
-        player-updates (zipmap names (repeat {:vote nil :is-on-team nil}))]
-    (merge-with merge players player-updates)))
+        player-updates (zipmap names (repeat {:vote nil :is-on-team nil}))
+        updated-players (merge-with merge players player-updates)]
+    (assoc game-state :players updated-players)))
+
+(defn- choose-next-leader [game-state]
+  "Advances the leader."
+  (let [players (:players game-state)
+        num-players (count players)
+        names (keys players)
+        leader (:leader game-state)
+        current-idx (.indexOf names leader)
+        new-idx (mod (inc current-idx) num-players)
+        new-leader (nth names new-idx)]
+    (assoc game-state :leader new-leader)))
 
 (defn- advance-mission [game-state]
   "Removes the recently completed mission."
@@ -182,6 +195,7 @@
   (-> game-state
       (update-score) ; reads votes, updates score accordingly
       (reset-players) ; resets player votes & team status
+      (choose-next-leader) ; choose the next leader
       (advance-mission) ; pops the last mission off the mission queue
       (update-game-status))) ; checks if the game is completed
 
@@ -297,8 +311,8 @@
   (in-phase
     game-state :voting
     (if-let [vote (valid-vote choice)]
-      (if (not (get-in game-state [:players name :vote]))
-        (if (get-in game-state [:players name :is-on-team])
+      (if (not (get-in game-state [:players player :vote]))
+        (if (get-in game-state [:players player :is-on-team])
           (cast-vote game-state player vote)
           (assoc-error game-state :not-in-mission))
         (assoc-error game-state :already-voted))

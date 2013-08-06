@@ -22,8 +22,9 @@
   (is (= (-> initial-game-state
              (join-game "cole")
              (join-game "grog")
+             :players)
              {"cole" {:faction nil :vote nil :is-on-team nil}
-              "grog" {:faction nil :vote nil :is-on-team nil}})))
+              "grog" {:faction nil :vote nil :is-on-team nil}}))
   (let [double-join (-> initial-game-state
                         (join-game "cole")
                         (join-game "cole"))
@@ -73,4 +74,55 @@
     (returns-error :not-leader (pick-team game-state "foo" "foo bar"))
     (returns-error :wrong-team-size (pick-team game-state leader "foo bar baz"))
     (let [picked-state (pick-team game-state leader ["p1" "p2"])]
-      (is (= (:phase picked-state) :voting)))))
+      (is (= (:phase picked-state) :voting))
+      (is (= (get-in picked-state [:players "p1" :is-on-team]) true)))))
+
+(defn choose-team-one [game-state]
+  (let [leader (:leader game-state)]
+    (pick-team game-state leader ["p1" "p2"])))
+
+(def first-player-voted
+  (-> initial-game-state
+      (join-game "p1")
+      (join-game "p2")
+      (join-game "p3")
+      (join-game "p4")
+      (join-game "p5")
+      (start-game)
+      (choose-team-one)
+      (vote "p1" "pass")))
+
+(def second-player-voted-pass
+  (vote first-player-voted "p2" "pass"))
+
+(def second-player-voted-fail
+  (vote first-player-voted "p2" "fail"))
+
+(def next-leader
+  {"p1" "p2"
+   "p2" "p3"
+   "p3" "p4"
+   "p4" "p5"
+   "p5" "p1"})
+
+(deftest vote-test
+  (let [game-state first-player-voted
+        players (:players game-state)
+        p1 (players "p1")
+        p2 (players "p2")]
+    (is (= (:error game-state) nil))
+    (is (= (:vote p1) :pass))
+    (is (= (:vote p2) nil)))
+  (let [leader (:leader first-player-voted)
+        game-state second-player-voted-pass
+        players (:players game-state)
+        score (:score game-state)
+        missions (:missions game-state)
+        p1 (players "p1")]
+    (is (= (count missions) 4))
+    (is (= score {:resistance 1
+                  :spies 0}))
+    (is (= (:is-on-team p1) nil))
+    (is (= (:vote p1) nil))
+    (is (= (:leader game-state) (next-leader leader)))))
+
