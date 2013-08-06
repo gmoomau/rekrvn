@@ -6,4 +6,5 @@
                  [enlive "1.1.1"]
                  [twitter-api "0.7.4"]
                  [com.novemberain/monger "1.4.1"]]
-  :main rekrvn.hub)
+  :main rekrvn.hub
+  :test-paths ["test"])
