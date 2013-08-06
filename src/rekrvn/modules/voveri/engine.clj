@@ -11,6 +11,8 @@
   {:phase :inactive ; possible phases are :inactive, :pick-team, :voting, :mission-ready
    :players {} ; map of the names of players in the game
                ; contains: :faction, :vote, :is-on-team
+   :player-order [] ; vector determining the order in which the leader advances
+                    ; determined by join order
    :missions [] ; the missions remaining for this game
    :leader nil ; the name of the person picking the team for this mission
    :score {:resistance 0 ; first to 3 wins
@@ -159,13 +161,12 @@
 
 (defn- choose-next-leader [game-state]
   "Advances the leader."
-  (let [players (:players game-state)
-        num-players (count players)
-        names (keys players)
+  (let [player-order (:player-order game-state)
+        num-players (count player-order)
         leader (:leader game-state)
-        current-idx (.indexOf names leader)
+        current-idx (.indexOf player-order leader)
         new-idx (mod (inc current-idx) num-players)
-        new-leader (nth names new-idx)]
+        new-leader (nth player-order new-idx)]
     (assoc game-state :leader new-leader)))
 
 (defn- advance-mission [game-state]
@@ -242,7 +243,9 @@
 
 (defn- add-player-to-game [game-state player-name]
   "Adds a new player to the game state."
-  (assoc-in game-state [:players player-name] new-player))
+  (-> game-state
+      (assoc-in [:players player-name] new-player)
+      (update-in [:player-order] conj player-name)))
 
 (defn- add-new-player-message [game-state player-name]
   (let [players (:players game-state)
