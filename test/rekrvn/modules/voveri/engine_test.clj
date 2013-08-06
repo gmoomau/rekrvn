@@ -1,4 +1,4 @@
-(ns rekrvn.modules.voveri.tests.engine-test
+(ns rekrvn.modules.voveri.engine-test
   (:require [clojure.test :refer :all])
   (:require [rekrvn.modules.voveri.engine :refer :all]))
 
