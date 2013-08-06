@@ -276,13 +276,13 @@
         mission-num (inc (- 5 (count (:missions game-state))))
         mission-str (str "The current mission ("
                          mission-num
-                         ") is led by "
+                         ") is lead by "
                          (:leader game-state)
                          " and requires "
                          num-players
                          " players and "
                          to-fail
-                         " negative votes to fail.")]
+                         " negative vote(s) to fail.")]
     (append-message game-state :broadcast mission-str)))
 
 (defn- add-player-to-game [game-state player-name]

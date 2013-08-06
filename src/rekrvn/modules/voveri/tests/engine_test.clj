@@ -57,7 +57,7 @@
       (is (= (first missions) [2 1])))
     (is (re-find #"(p1|p2|p3|p4|p5)" (:leader game-state)))
     (let [messages (:messages game-state)]
-      (is (= (count messages) 6))
+      (is (= (count messages) 11))
       (is (= (first messages)
              [:broadcast "p1 joined the game. [p1]"]))
       (is (= (nth messages 1)
@@ -105,6 +105,45 @@
    "p4" "p5"
    "p5" "p1"})
 
+(defn get-current-mission [game-state]
+  (first (:missions game-state)))
+
+(defn choose-team [game-state]
+  (let [leader (:leader game-state)
+        [team-size _] (first (:missions game-state))
+        team (map str (repeat "p") (range 1 (inc team-size)))]
+    (pick-team game-state leader team)))
+
+(defn cast-votes [game-state]
+  "Whole team votes pass."
+  (let [[team-size _] (get-current-mission game-state)
+        team (map str (repeat "p") (range 1 (inc team-size)))]
+    (reduce (fn [gs player]
+              (vote gs player "pass"))
+            game-state
+            team)))
+
+;(defn cast-votes-naive [game-state]
+;  "Whole team votes pass."
+;  (let [[team-size _] (get-current-mission game-state)
+;        team (map str (repeat "p") (range 1 (inc team-size)))]
+;    (reduce (fn [memo player]
+;              (assoc-in game-state [:players player :vote] :pass))
+;            game-state
+;            team)))
+
+(defn play-round [game-state]
+  (-> game-state
+      (choose-team)
+      (cast-votes)))
+
+(defn play-three-round-game [game-state]
+  (-> game-state
+      (start-game)
+      (play-round)
+      (play-round)
+      (play-round)))
+
 (deftest vote-test
   (let [game-state first-player-voted
         players (:players game-state)
@@ -125,7 +164,15 @@
     (is (= (:is-on-team p1) nil))
     (is (= (:vote p1) nil))
     (is (= (:leader game-state) (next-leader leader)))
-    (is (= (last (last (:messages game-state)))
-           (str "The current mission (2) is lead by "
-                (:leader game-state)
-                " and requires 3 players and 1 negative vote(s) to fail.")))))
+    ;(is (= (last (last (:messages game-state)))
+    ;       (str "The current mission (2) is lead by "
+    ;            (:leader game-state)
+    ;            " and requires 3 players and 1 negative vote(s) to fail.")))
+    (let [game-state (play-three-round-game five-player-game-state)]
+      (is (= (:phase game-state) :inactive))
+      (is (= (count (:messages game-state)) 1))
+      (is (= (first (:messages game-state))
+             [:broadcast "The resistance has won the game!"]))
+      (is (= game-state
+             (conj initial-game-state
+                   {:messages [[:broadcast "The resistance has won the game!"]]}))))))
