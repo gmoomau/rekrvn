@@ -169,9 +169,25 @@
         new-leader (nth player-order new-idx)]
     (assoc game-state :leader new-leader)))
 
+(defn- add-mission-message [game-state]
+  (let [[num-players to-fail] (get-current-mission game-state)
+        mission-num (inc (- 5 (count (:missions game-state))))
+        mission-str (str "The current mission ("
+                         mission-num
+                         ") is lead by "
+                         (:leader game-state)
+                         " and requires "
+                         num-players
+                         " players and "
+                         to-fail
+                         " negative vote(s) to fail.")]
+    (append-message game-state :broadcast mission-str)))
+
 (defn- advance-mission [game-state]
   "Removes the recently completed mission."
-  (update-in game-state [:missions] rest))
+  (-> game-state
+      (update-in [:missions] rest)
+      (add-mission-message)))
 
 (defn- winning-faction-str [score]
   (if (> (:resistance score) (:spies score))
@@ -225,21 +241,7 @@
         faction-split (get faction-balances num-players)
         factions (shuffle (gen-factions faction-split))
         names (keys players)]
-    (zipmap names (map #(do {:faction %}) factions)))) 
-
-(defn- add-mission-message [game-state]
-  (let [[num-players to-fail] (get-current-mission game-state)
-        mission-num (inc (- 5 (count (:missions game-state))))
-        mission-str (str "The current mission ("
-                         mission-num
-                         ") is led by "
-                         (:leader game-state)
-                         " and requires "
-                         num-players
-                         " players and "
-                         to-fail
-                         " negative votes to fail.")]
-    (append-message game-state :broadcast mission-str)))
+    (zipmap names (map #(do {:faction %}) factions))))
 
 (defn- add-player-to-game [game-state player-name]
   "Adds a new player to the game state."

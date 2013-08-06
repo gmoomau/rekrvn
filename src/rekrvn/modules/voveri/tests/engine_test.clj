@@ -62,7 +62,7 @@
              [:broadcast "p1 joined the game. [p1]"]))
       (is (= (nth messages 1)
              [:broadcast "p2 joined the game. [p2, p1]"]))
-      (is (re-find #"The current mission \(1\) is led by p[1-5] and requires 2 players and 1 negative votes to fail\."
+      (is (re-find #"The current mission \(1\) is lead by p[1-5] and requires 2 players and 1 negative vote\(s\) to fail\."
                    (first (rest (nth messages 5))))))))
 
 (defmacro returns-error [error expr]
@@ -124,5 +124,8 @@
                   :spies 0}))
     (is (= (:is-on-team p1) nil))
     (is (= (:vote p1) nil))
-    (is (= (:leader game-state) (next-leader leader)))))
-
+    (is (= (:leader game-state) (next-leader leader)))
+    (is (= (last (last (:messages game-state)))
+           (str "The current mission (2) is lead by "
+                (:leader game-state)
+                " and requires 3 players and 1 negative vote(s) to fail.")))))
