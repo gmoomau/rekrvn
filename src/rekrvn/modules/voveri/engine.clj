@@ -60,7 +60,7 @@
    failing vote to fail. If the entry is a vector, the first
    item is the numbers of voters and the second item is the
    number of failing votes required to fail the mission."
-  {2  [2 2]
+  {2  [2 2 2]
    5  [2 3 2 3 3]
    6  [2 3 4 3 4]
    7  [2 3 3 [4 2] 4]
@@ -235,6 +235,12 @@
 (defn- leader? [game-state player-name]
   (= player-name (:leader game-state)))
 
+(defn- spy? [game-state player-name]
+  (= :spies (get-in game-state [:players player-name :faction])))
+
+(defn- resistance? [game-state player-name]
+  (= :resistance (get-in game-state [:players player-name :faction])))
+
 (defn- assign-factions [players]
   "Assigns players to different factions at the start of the game."
   (let [num-players (count players)
@@ -242,6 +248,40 @@
         factions (shuffle (gen-factions faction-split))
         names (keys players)]
     (zipmap names (map #(do {:faction %}) factions))))
+
+(defn- get-spies [game-state]
+  (let [players (:players game-state)
+        names (keys players)]
+    (filter #(= :spies (:faction (get players %))) names)))
+
+(defn- get-faction-notification [game-state player-name]
+  (cond
+    (resistance? game-state player-name) "You are on the resistance."
+    (spy? game-state player-name) (let [spy-list (get-spies game-state)
+                                        other-spies (remove #(= player-name %) spy-list)
+                                        spy-str (s/join " " other-spies)]
+                         (str "You are a spy. Your fellow spies are: " spy-str))))
+
+(defn- add-faction-notifications [game-state]
+  (let [players (:players game-state)
+        player-names (keys players)
+        faction-strs (map #(get-faction-notification game-state %) player-names)
+        msg-vecs (map vector player-names faction-strs)]
+    (update-in game-state [:messages] concat msg-vecs)))
+
+(defn- add-mission-message [game-state]
+  (let [[num-players to-fail] (get-current-mission game-state)
+        mission-num (inc (- 5 (count (:missions game-state))))
+        mission-str (str "The current mission ("
+                         mission-num
+                         ") is led by "
+                         (:leader game-state)
+                         " and requires "
+                         num-players
+                         " players and "
+                         to-fail
+                         " negative votes to fail.")]
+    (append-message game-state :broadcast mission-str)))
 
 (defn- add-player-to-game [game-state player-name]
   "Adds a new player to the game state."
@@ -290,7 +330,9 @@
                                 :phase :pick-team
                                 :leader (nth (keys players) (rand-int num-players))}
              new-state (conj game-state new-state-partial)]
-         (add-mission-message new-state))
+         (-> new-state
+           add-mission-message
+           add-faction-notifications))
        (assoc-error game-state :not-enough-players)))))
 
 
