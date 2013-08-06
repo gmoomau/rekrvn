@@ -170,18 +170,20 @@
     (assoc game-state :leader new-leader)))
 
 (defn- add-mission-message [game-state]
-  (let [[num-players to-fail] (get-current-mission game-state)
-        mission-num (inc (- 5 (count (:missions game-state))))
-        mission-str (str "The current mission ("
-                         mission-num
-                         ") is lead by "
-                         (:leader game-state)
-                         " and requires "
-                         num-players
-                         " players and "
-                         to-fail
-                         " negative vote(s) to fail.")]
-    (append-message game-state :broadcast mission-str)))
+  (if (empty? (:missions game-state))
+    game-state
+    (let [[num-players to-fail] (get-current-mission game-state)
+          mission-num (inc (- 5 (count (:missions game-state))))
+          mission-str (str "The current mission ("
+                           mission-num
+                           ") is lead by "
+                           (:leader game-state)
+                           " and requires "
+                           num-players
+                           " players and "
+                           to-fail
+                           " negative vote(s) to fail.")]
+      (append-message game-state :broadcast mission-str))))
 
 (defn- advance-mission [game-state]
   "Removes the recently completed mission."
