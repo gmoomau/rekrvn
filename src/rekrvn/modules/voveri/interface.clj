@@ -29,6 +29,8 @@
       (ref-set game-state (assoc result :messages [])))))
 
 (defn handle-join [[nick] _]
+  ;; this is ugly buttttttttt
+  (irc/modAllow irc-network nick mod-name)
   (handle-result (e/join-game @game-state nick)))
 
 (defn handle-start [& _]

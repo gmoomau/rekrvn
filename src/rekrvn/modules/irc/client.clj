@@ -187,7 +187,7 @@
 
 
 ;; definitions done, actually doing stuff now
-(hub/addListener "irc.client" #"^(\S+) forirc (^#\s+)#(\S+) (.+)" doSomething)
+(hub/addListener "irc.client" #"^(\S+) forirc ([^#\s]+)#(\S+) (.+)" doSomething)
 (hub/addListener "irc.client" #"^\S+ irccmd (\S+) (.+)" raw)
 ;; initialize options from config file
 (startirc)
