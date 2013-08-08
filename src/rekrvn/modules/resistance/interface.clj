@@ -1,11 +1,11 @@
-(ns rekrvn.modules.voveri.interface
+(ns rekrvn.modules.resistance.interface
   (:require [rekrvn.hub :as hub])
   (:require [clojure.string :as s])
   (:require [rekrvn.config :only resistance])
   (:require [rekrvn.modules.irc.client :as irc])
-  (:require [rekrvn.modules.voveri.engine :as e]))
+  (:require [rekrvn.modules.resistance.engine :as e]))
 
-(def mod-name "voveri.interface")
+(def mod-name "resistance.interface")
 
 ;; chat stuff
 (def irc-network (:network rekrvn.config/resistance))
