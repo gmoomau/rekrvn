@@ -264,7 +264,9 @@
         num-players (count players)
         [for _] (process-ratifying-votes game-state)]
     (if (>= for (quot num-players 2))
-      (assoc game-state :phase :voting)
+      (-> game-state
+          (assoc :phase :voting)
+          (append-message :broadcast "Team accepted. Go forth and vote!"))
       (reset-team-selection game-state))))
 
 (defn- cast-vote [game-state player vote]
