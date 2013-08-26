@@ -8,7 +8,7 @@
 ;;;;; Basic game constants
 (def initial-game-state
   "The state of the game at startup."
-  {:phase :inactive ; possible phases are :inactive, :pick-team, :voting, :mission-ready
+  {:phase :inactive ; possible phases are :inactive, :pick-team, :ratify-team, :voting, :mission-ready
    :players {} ; map of the names of players in the game
                ; contains: :faction, :vote, :is-on-team
    :player-order [] ; vector determining the order in which the leader advances
@@ -30,10 +30,12 @@
    :not-leader "You must be the leader to select a team."
    :not-in-mission "Only members of the current team can vote."
    :already-voted "You've already voted on this mission."
-   :invalid-vote "Invalid vote. Must vote 'for' or 'against'."})
+   :invalid-vote "Invalid vote. Must vote 'for' or 'against'."
+   :not-player "You must be a part of the game to play."
+   :already-ratified "You've already voted on the team selection."})
 
 (def ^:private new-player
-  {:faction nil :vote nil :is-on-team nil})
+  {:faction nil :vote nil :is-on-team nil :ratify nil})
 
 ;; Faction balancing
 (defn- gen-factions [[r s]]
@@ -227,12 +229,55 @@
       (evaluate-mission game-state)
       game-state)))
 
+(defn- get-ratifying-votes [game-state]
+  (let [players (:players game-state)]
+    (map (fn [_ player-data] (:ratify player-data)) players)))
+
+(defn- process-ratifying-votes [game-state]
+  (let [votes (get-ratifying-votes game-state)]
+    (reduce (fn [[passes fails] vote]
+              (if (= vote "pass")
+                [(inc passes) fails]
+                [passes (inc fails)]))
+            [0 0]
+            votes)))
+
+(defn- erase-player-attribute [game-state attribute]
+  (let [players (:players game-state)
+        player-names (keys players)]
+    (reduce (fn [new-state player-name]
+              (assoc-in new-state [:players player-name attribute] nil))
+            game-state
+            player-names)))
+
+(defn- reset-team-selection [game-state]
+  "Resets ratification votes and de-selects a team."
+  (-> game-state
+      (erase-player-attribute :is-on-team)
+      (erase-player-attribute :ratify)
+      (append-message :broadcast "Team was rejected. Choose a new team.")
+      (assoc :phase :pick-team)))
+
+(defn- evaluate-ratifying-vote-if-necessary [game-state]
+  "Will evaluate whether or not a team has been accepted."
+  (let [players (:players game-state)
+        num-players (count players)
+        [for _] (process-ratifying-votes game-state)]
+    (if (>= for (quot num-players 2))
+      (-> game-state
+          (assoc :phase :voting)
+          (append-message :broadcast "Team accepted. Go forth and vote!"))
+      (reset-team-selection game-state))))
+
 (defn- cast-vote [game-state player vote]
   "Sets a users vote."
   (-> game-state
       (update-in [:players player] assoc :vote vote)
       (append-message player "Vote cast.")
       (evaluate-mission-if-necessary)))
+
+(defn- player? [game-state player-name]
+  (get-in game-state [:players player-name]))
 
 (defn- leader? [game-state player-name]
   (= player-name (:leader game-state)))
@@ -348,12 +393,26 @@
          (let [new-state (reduce (fn [memo team-member]
                                    (assoc-in memo [:players team-member :is-on-team] true))
                                  game-state
-                                 team)]
+                                 team)
+               team-str (s/join ", " team)]
            (-> new-state
-               (append-message :broadcast "Team selected. Go forth and vote!")
-               (conj {:phase :voting}))))
+               (append-message :broadcast (str player-name " proposes team [" team-str "]. Do the players accept?"))
+               (assoc-in [:players player-name :ratify] "pass")
+               (conj {:phase :ratify-team}))))
        (assoc-error game-state :wrong-team-size))
      (assoc-error game-state :not-leader))))
+
+(defn ratify [game-state player choice]
+  "Player <player> elects to ratify (or reject) the chosen team."
+  (in-phase
+   game-state :ratify-team
+   (if (player? game-state player)
+     (if (ratified? game-state player)
+       (assoc-error game-state :already-ratified)
+       (-> game-state
+           (assoc-in [:players player :ratify] choice)
+           (evaluate-ratifying-vote-if-necessary)))
+     (assoc-error game-state :not-player))))
 
 (defn vote [game-state player choice]
   "Player <player> attempts to vote <choice>."
