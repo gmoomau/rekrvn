@@ -1,4 +1,4 @@
-(ns rekrvn.modules.voveri.engine
+(ns rekrvn.modules.resistance.engine
   (:require [clojure.string :as s]))
 
 ;; purely functional game engine
