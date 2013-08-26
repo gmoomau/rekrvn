@@ -410,7 +410,7 @@
      (if (ratified? game-state player)
        (assoc-error game-state :already-ratified)
        (-> game-state
-           (update-in [:players player :ratify choice])
+           (assoc-in [:players player :ratify] choice)
            (evaluate-ratifying-vote-if-necessary)))
      (assoc-error game-state :not-player))))
 
