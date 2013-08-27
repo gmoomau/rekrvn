@@ -288,6 +288,9 @@
 (defn- resistance? [game-state player-name]
   (= :resistance (get-in game-state [:players player-name :faction])))
 
+(defn ratified? [game-state player-name]
+  (get-in game-state [:players player-name :ratify]))
+
 (defn- assign-factions [players]
   "Assigns players to different factions at the start of the game."
   (let [num-players (count players)

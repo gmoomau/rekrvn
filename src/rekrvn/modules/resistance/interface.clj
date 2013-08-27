@@ -43,6 +43,9 @@
                (reduce conj #{}))]
     (handle-result (e/pick-team @game-state player team))))
 
+(defn handle-ratify [[player choice] _]
+  (handle-result (e/ratify @game-state player choice)))
+
 (defn handle-vote [[nick vote] _]
   (handle-result (e/vote @game-state nick vote)))
 
@@ -52,5 +55,6 @@
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.rjoin" handle-join)
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.rstart" handle-start)
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.rteam (.+)" handle-choose-team)
+(hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.rratify (pass|fail)" handle-ratify)
 (hub/addListener mod-name vote-pattern handle-vote)
 
