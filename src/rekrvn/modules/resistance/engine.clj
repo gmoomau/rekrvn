@@ -402,15 +402,15 @@
        (assoc-error game-state :wrong-team-size))
      (assoc-error game-state :not-leader))))
 
-(defn ratify [game-state player choice]
+(defn ratify [game-state player-name choice]
   "Player <player> elects to ratify (or reject) the chosen team."
   (in-phase
    game-state :ratify-team
-   (if (player? game-state player)
-     (if (ratified? game-state player)
+   (if (player? game-state player-name)
+     (if (ratified? game-state player-name)
        (assoc-error game-state :already-ratified)
        (-> game-state
-           (assoc-in [:players player :ratify] choice)
+           (assoc-in [:players player-name :ratify] choice)
            (evaluate-ratifying-vote-if-necessary)))
      (assoc-error game-state :not-player))))
 
