@@ -231,7 +231,7 @@
 
 (defn- get-ratifying-votes [game-state]
   (let [players (:players game-state)]
-    (map (fn [_ player-data] (:ratify player-data)) players)))
+    (map (fn [[_ player-data]] (:ratify player-data)) players)))
 
 (defn- process-ratifying-votes [game-state]
   (let [votes (get-ratifying-votes game-state)]
@@ -270,7 +270,7 @@
             (assoc :phase :voting)
             (append-message :broadcast "Team accepted. Go forth and vote!"))
         (reset-team-selection game-state))
-      game-state))
+      (append-message game-state :broadcast "Ratifying vote cast.")))
 
 (defn- cast-vote [game-state player vote]
   "Sets a users vote."
