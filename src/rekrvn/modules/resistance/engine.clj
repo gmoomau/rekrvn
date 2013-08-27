@@ -262,12 +262,15 @@
   "Will evaluate whether or not a team has been accepted."
   (let [players (:players game-state)
         num-players (count players)
-        [for _] (process-ratifying-votes game-state)]
-    (if (>= for (quot num-players 2))
-      (-> game-state
-          (assoc :phase :voting)
-          (append-message :broadcast "Team accepted. Go forth and vote!"))
-      (reset-team-selection game-state))))
+        [for against] (process-ratifying-votes game-state)
+        total (+ for against)]
+    (if (= total num-players)
+      (if (>= for (quot num-players 2))
+        (-> game-state
+            (assoc :phase :voting)
+            (append-message :broadcast "Team accepted. Go forth and vote!"))
+        (reset-team-selection game-state))
+      game-state))
 
 (defn- cast-vote [game-state player vote]
   "Sets a users vote."
