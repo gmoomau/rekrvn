@@ -231,7 +231,9 @@
 
 (defn- get-ratifying-votes [game-state]
   (let [players (:players game-state)]
-    (map (fn [[_ player-data]] (:ratify player-data)) players)))
+    (map
+     (fn [[_ player-data]] (:ratify player-data))
+     players)))
 
 (defn- process-ratifying-votes [game-state]
   (let [votes (get-ratifying-votes game-state)]
