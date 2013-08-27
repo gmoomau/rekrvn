@@ -272,7 +272,7 @@
             (assoc :phase :voting)
             (append-message :broadcast "Team accepted. Go forth and vote!"))
         (reset-team-selection game-state))
-      (append-message game-state :broadcast "Ratifying vote cast.")))
+      (append-message game-state :broadcast "Ratifying vote cast."))))
 
 (defn- cast-vote [game-state player vote]
   "Sets a users vote."
