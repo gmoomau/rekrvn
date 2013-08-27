@@ -234,7 +234,7 @@
         votes (map
                (fn [[_ player-data]] (:ratify player-data))
                players)]
-    (filter identity votes))
+    (filter identity votes)))
 
 (defn- process-ratifying-votes [game-state]
   (let [votes (get-ratifying-votes game-state)]
