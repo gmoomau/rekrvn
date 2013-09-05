@@ -37,6 +37,18 @@
 (def ^:private new-player
   {:faction nil :vote nil :is-on-team nil :ratify nil})
 
+(declare inactive-status-generator)
+(declare pick-team-status-generator)
+(declare ratify-team-status-generator)
+(declare voting-status-generator)
+(declare mission-ready-status-generator)
+(def ^:private phase-to-status-map
+  {:inactive inactive-status-generator
+   :pick-team pick-team-status-generator
+   :ratify-team ratify-team-status-generator
+   :voting voting-status-generator
+   :mission-ready mission-ready-status-generator})
+
 ;; Faction balancing
 (defn- gen-factions [[r s]]
   "Generate faction designations with <r> resistance members and <s> spies."
@@ -90,6 +102,76 @@
   "Adds a message to the message queue."
   (update-in game-state [:messages] conj [recipient message]))
 
+(defn- inactive-status-generator [game-state]
+  (let [players (:players game-state)
+        player-names (keys players)
+        player-name-str (s/join ", " player-names)
+        num-players (count players)]
+    (if (> num-players 0)
+      (append-message game-state :broadast (str "The game has not yet started. Registered players: "
+                                                player-name-str
+                                                "."))
+      (append-message game-state :broadcast "No active game and no players registered."))))
+
+(declare get-current-mission)
+(defn- pick-team-status-generator [game-state]
+  (let [leader (:leader game-state)
+        [players to-fail] (get-current-mission game-state)
+        mission-num (- 6 (count (:missions game-state)))]
+    (append-message game-state
+                    :broadcast
+                    (str leader
+                         " is picking the team for mission "
+                         mission-num
+                         " which requires "
+                         players
+                         " players and "
+                         to-fail
+                         " negative votes to fail."))))
+
+(declare get-current-team)
+(defn- ratify-team-status-generator [game-state]
+  (let [team (get-current-team game-state)
+        team-str (s/join ", " team)
+        leader (:leader game-state)
+        [players-for-mission to-fail] (get-current-mission game-state)
+        mission-num (- 6 (count (:missions game-state)))
+        remaining-players (->> game-state
+                               :players
+                               (filter (fn [[_ data]] (not (:ratify data))))
+                               (map first))
+        remaining-players-str (s/join ", " remaining-players)]
+    (append-message game-state
+                    :broadcast
+                    (str leader
+                         " has chosen the team ["
+                         team-str
+                         "] for mission "
+                         mission-num
+                         " (" players-for-mission "/" to-fail "). "
+                         "Still waiting on a vote from "
+                         reamining-players-str "."))))
+
+(declare get-players-by-vote-status)
+(defn- voting-status-generator [game-state]
+  (let [player-names (get-players-by-vote-status game-state false)
+        player-str (s/join ", " player-names)]
+    (append-message game-state
+                    :broadcast
+                    (str "There is a vote underway. Currently waiting on [" player-str "]."))))
+
+(defn- mission-ready-status-generator [game-state]
+  (let [[players to-fail] (get-current-mission game-state)
+        leader (:leader game-state)]
+    (append-message game-state
+                    :broadcast
+                    (str "A new round has started. It requires "
+                         players
+                         " players to play, "
+                         to-fail
+                         " negative votes to fail and is lead by "
+                         leader "."))))
+
 (defmacro in-phase [game-state phase & forms]
   "When the game is in the given phase, evaluate the forms.
    Otherwise, return nil."
@@ -112,9 +194,28 @@
 (defn- get-current-mission [game-state]
   (first (:missions game-state)))
 
+(defn- get-current-team [game-state]
+  (->> game-state
+       :players
+       (filter (fn [_ data] (:is-on-team data)))
+       (map first)))
+
 (defn- valid-vote [vote]
   (let [vote-map {"pass" :pass "fail" :fail}]
     (get vote-map vote)))
+
+(defn- get-players-by-vote-status [game-state voted]
+  "Returns a pair of [player-name player-data] based on whether or not
+   the player has voted."
+  (let [vote-filter-fn ({true identity
+                         false nil?})]
+    (->> game-state
+         :players
+         (filter (fn [[_ player-data]]
+                   (and 
+                    (vote-filter-fn (:vote player-data))
+                    (:is-on-team player-data))))
+         (map first))))
 
 (defn- get-votes [game-state]
   "Returns a list of all of the votes."
@@ -434,3 +535,8 @@
           (assoc-error game-state :not-in-mission))
         (assoc-error game-state :already-voted))
       (assoc-error game-state :invalid-vote))))
+
+(defn status [game-state]
+  (let [phase (:phase game-state)
+        status-generator (get phase-to-status-map phase)]
+    (status-generator game-state)))
