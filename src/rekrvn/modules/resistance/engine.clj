@@ -150,7 +150,7 @@
                          mission-num
                          " (" players-for-mission "/" to-fail "). "
                          "Still waiting on a vote from "
-                         reamining-players-str "."))))
+                         remaining-players-str "."))))
 
 (declare get-players-by-vote-status)
 (defn- voting-status-generator [game-state]
@@ -212,7 +212,7 @@
     (->> game-state
          :players
          (filter (fn [[_ player-data]]
-                   (and 
+                   (and
                     (vote-filter-fn (:vote player-data))
                     (:is-on-team player-data))))
          (map first))))

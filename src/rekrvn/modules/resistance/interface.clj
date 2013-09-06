@@ -49,11 +49,15 @@
 (defn handle-vote [[nick vote] _]
   (handle-result (e/vote @game-state nick vote)))
 
+(defn handle-status [& _]
+  (handle-result (e/status @game-state)))
+
 (def vote-pattern
   (re-pattern (str "^irc :(\\S+)!\\S+ PRIVMSG " irc-nick " :\\.rvote (pass|fail)")))
 
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.rjoin" handle-join)
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.rstart" handle-start)
+(hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.rstatus" handle-status)
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.rteam (.+)" handle-choose-team)
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.rratify (pass|fail)" handle-ratify)
 (hub/addListener mod-name vote-pattern handle-vote)
