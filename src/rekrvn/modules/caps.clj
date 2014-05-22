@@ -23,4 +23,4 @@
             (reply modName (:text result)))
           (mongo/disconnect!))))))
 
-  (hub/addListener modName #"^irc.*PRIVMSG #(\S+) :([^a-z]*[A-Z]+[^a-z]*)$" caps)
+(hub/addListener modName #"^irc.*PRIVMSG #(\S+) :([^a-z]*[A-Z]+[^a-z]*)$" caps)
