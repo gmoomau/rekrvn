@@ -5,7 +5,7 @@
 (def modName "caps")
 
 (defn caps [[channel line] reply]
-  (if-let [[_ term] (re-matches #"STOP (?:YELLING|SHOUTING) (.+)" line)]
+  (if-let [[_ term] (re-matches #"(?:STOP|QUIT) (?:YELLING|SHOUTING) (.+)" line)]
     (do
       (mongo/connect!)
       (if (= 0 (.getN (mongo/remove modName {:channel channel :text term})))
@@ -23,4 +23,4 @@
             (reply modName (:text result)))
           (mongo/disconnect!))))))
 
-  (hub/addListener modName #"^irc.*PRIVMSG #(\S+) :([^a-z]*[A-Z]+[^a-z]*)$" caps)
+(hub/addListener modName #"^irc.*PRIVMSG #(\S+) :([^a-z]*[A-Z]+[^a-z]*)$" caps)
