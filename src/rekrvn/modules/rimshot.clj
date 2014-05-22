@@ -3,7 +3,8 @@
 
 (def modName "rimshot")
 
-(def rimShot "http://instantrimshot.com/")
+;(def rimShot "http://instantrimshot.com/")
+(def rimShot "http://i.imgur.com//BbgL7x3.gif")
 (def trombone "http://sadtrombone.com")
 (def khan "http://www.khaaan.com/")
 
