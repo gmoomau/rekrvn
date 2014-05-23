@@ -4,6 +4,11 @@
 
 (def modName "caps")
 
+(defn isRealShout? [line]
+  (or 
+    (re-matches #".+!" line)
+    (> (count ((apply str (re-seq #"[A-Z]+" line)))) 4)))
+
 (defn caps [[channel line] reply]
   (if-let [[_ term] (re-matches #"(?:STOP|QUIT) (?:YELLING|SHOUTING) (.+)" line)]
     (do
@@ -12,7 +17,7 @@
         (reply modName "I CAN'T!")
         (reply modName "FINE."))
       (mongo/disconnect!))
-    (when (> (count line) 3)
+    (when (isRealShout? line)
       (do
         (mongo/connect!)
         (let [new-doc {:text line :channel channel}
