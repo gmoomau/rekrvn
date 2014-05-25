@@ -45,7 +45,7 @@
         disambig (h/select tree [:#disambigbox])
         html-ps (map (comp strip-formatting (partial apply str) h/emit*) paras)
         para (first (filter not-empty html-ps))
-        blurb (second (re-find #"^(.+?[a-zA-Z][a-zA-Z]\.)(?: [A-Z])?" para))]
+        blurb (second (re-find #"^(.+? (?:(?:\w+ )+(?:e\.?g\.|a\.?d\.b\.?c\.|v\.?s\.)?)+? [a-zA-Z][a-zA-Z]\.)(?: [A-Z])?" para))]
     (if (not-empty blurb)
       blurb
       (if (not-empty disambig)
