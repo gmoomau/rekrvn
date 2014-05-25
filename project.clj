@@ -1,4 +1,4 @@
-(defproject rekrvn "0.0.8-alpha"
+(defproject rekrvn "0.1.0"
   :description "irc bot framework"
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [http.async.client "0.4.3"]
