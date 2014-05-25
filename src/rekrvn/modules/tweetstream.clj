@@ -2,6 +2,7 @@
   (:require [rekrvn.hub :as hub])
   (:use [cheshire.core])
   (:use [rekrvn.config :only [twitter-creds twitter-stream-channel]])
+  (:require [rekrvn.modules.twitter :as util])
   (:use [clojure.string :only [blank?]]
         [twitter.oauth]
         [twitter.callbacks]
@@ -18,25 +19,8 @@
                                 (:user-token twitter-creds)
                                 (:user-secret twitter-creds)))
 
-;;;;;;;;;;; functions that should be refactored out
-(defn expand-links [text urls]
-  (reduce #(clojure.string/replace %1 (:url %2) (:expanded_url %2)) text urls))
-
-(defn plaintext [text]
-  (-> text
-    (clojure.string/replace "&gt;" ">")
-    (clojure.string/replace "&lt;" "<")
-    (clojure.string/replace "&amp;" "&")))
-
-(defn bold [text] (when text (str (char 2) text (char 15))))
-;; 0x02 bolds in irc and 0x0F (decimal 15) removes formatting
-
-(defn niceify [tweet]
-  (when-let [user-string (bold (:screen_name (:user tweet)))]
-    (str user-string " " (expand-links (plaintext (:text tweet)) (:urls (:entities tweet))))))
-
 (defn announce-tweet [tweet]
-  (let [announcement (str mod-name " forirc " twitter-stream-channel  " " (niceify tweet))]
+  (let [announcement (str mod-name " forirc " twitter-stream-channel  " " (util/niceify tweet))]
     (println announcement)
     (hub/broadcast announcement)))
 
