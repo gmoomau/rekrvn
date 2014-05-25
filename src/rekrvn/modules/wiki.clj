@@ -15,6 +15,21 @@
                   "&alt=json"
                   "&q="))
 
+(def sentence-regex
+  #"(?x)
+      ^(
+        (?>
+          (?>
+            (?>ad|bce?|eg|ex|ie|vs)\.|  # don't stop on ex. vs. ...
+            \d++(?>\.\d++)++|           # ex. 1.04 100.3 1.0.3.2
+            (?>[^\s^\.]\.)++|           # ex. a.b.c.d., u.s.a.
+            [^\s^\.]++)                 # anything without a .
+          \s)*+                         # this was all <word><space>*
+        [^\s^\.]++                      # the last word in the sentence
+        \.)                             # end on a period
+      (?>\s|$)                          # the period must either end the
+    ")
+
 (defn web-request [url]
   (with-open [client (c/create-client)]
     (let [response (c/GET client url)]
@@ -45,7 +60,7 @@
         disambig (h/select tree [:#disambigbox])
         html-ps (map (comp strip-formatting (partial apply str) h/emit*) paras)
         para (first (filter not-empty html-ps))
-        blurb (second (re-find #"^(.+? (?:(?:\w+ )+(?:e\.?g\.|a\.?d\.b\.?c\.|v\.?s\.)?)+? [a-zA-Z][a-zA-Z]\.)(?: [A-Z])?" para))]
+        blurb (second (re-find sentence-regex para))]
     (if (not-empty blurb)
       blurb
       (if (not-empty disambig)
