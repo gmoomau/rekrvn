@@ -13,7 +13,7 @@
        (doseq [results (re-seq matcher content)]
          (try
            (act-fn (rest results) reply)
-           (catch Exception e (println (str "Caught exception: " (.getMessage e))))))))))
+           (catch Exception e (println (str "Caught exception: " e (": ") (.getMessage e))))))))))
 
 (defn addListener [modname matcher action]
   (dosync (alter listeners conj {:mod modname :matcher matcher :action action})))
