@@ -20,14 +20,16 @@
       ^(
         (?>
           (?>
-            (?>ad|bce?|eg|ex|ie|vs)\.|  # don't stop on ex. vs. ...
+            (?>ad|bce?|eg|ex|ie|vs)\.|  # don't stop on vs.,ie., or similar
             \d++(?>\.\d++)++|           # ex. 1.04 100.3 1.0.3.2
             (?>[^\s^\.]\.)++|           # ex. a.b.c.d., u.s.a.
+            \([^\)]*+\)|                # anything inside parentheses
             [^\s^\.]++)                 # anything without a .
-          \s)*+                         # this was all <word><space>*
+          ,?\s)*+                         # this was all <word><space>*
         [^\s^\.]++                      # the last word in the sentence
-        \.)                             # end on a period
+        \.\"?)                          # end on a period with optional quote
       (?>\s|$)                          # the period must either end the
+                                        # paragraph or be followed by a space
     ")
 
 (defn web-request [url]
