@@ -25,7 +25,7 @@
             (?>[^\s^\.]\.)++|           # ex. a.b.c.d., u.s.a.
             \([^\)]*+\)|                # anything inside parentheses
             [^\s^\.]++)                 # anything without a .
-          ,?\s)*+                         # this was all <word><space>*
+          ,?\s)*+                       # this was all <word><space>*
         [^\s^\.]++                      # the last word in the sentence
         \.\"?)                          # end on a period with optional quote
       (?>\s|$)                          # the period must either end the
