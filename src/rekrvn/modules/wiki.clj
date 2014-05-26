@@ -73,9 +73,9 @@
   (reply mod-name (get-blurb link)))
 
 (defn wiki [[terms] reply]
-  (let [link (get-wiki-link terms)
-        blurb (get-blurb link)]
-    (reply mod-name (str link " - " blurb))))
+  (if-let [link (get-wiki-link terms)]
+    (reply mod-name (str link " - " (get-blurb link)))
+    (reply mod-name "no wiki links found")))
 
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.wiki (.+)$" wiki)
 (hub/addListener mod-name #"(https?://en\.wikipedia\.org/wiki/\S+)" trigger-from-link)
