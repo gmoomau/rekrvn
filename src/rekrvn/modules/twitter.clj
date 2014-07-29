@@ -11,10 +11,14 @@
     (clojure.string/replace "&amp;" "&")
     (clojure.string/replace "\n" " ")))
 
-(defn bold [text] (when text (str (char 2) text (char 15))))
+(defn bold [text] (when text (str (char 2) text (char 15) )))
 ;; 0x02 bolds in irc and 0x0F (decimal 15) removes formatting
+;; currently not used
+
+(defn color [text] (when text (str (char 3) "11" text (char 3))))
+;; 0x03 is color and 11 is cyan
 
 (defn niceify [tweet]
-  (when-let [user-string (bold (:screen_name (:user tweet)))]
+  (when-let [user-string (color (:screen_name (:user tweet)))]
     (str user-string " " (expand-links (plaintext (:text tweet)) (:urls (:entities tweet))))))
 
