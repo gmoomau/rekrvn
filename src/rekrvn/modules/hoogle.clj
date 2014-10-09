@@ -4,4 +4,4 @@
 (defn hoogle [[terms] reply]
   (reply "hoogle" "A hoogle error has occurred."))
 
-(hub/addListener "hoogle" #"^irc.*PRIVMSG #\S+ :\.hoogle(\s.*)?$" hoogle)
+(hub/addListener "hoogle" #"^irc.*PRIVMSG #\S+ :.*hoogle(\s.*)?$" hoogle)
