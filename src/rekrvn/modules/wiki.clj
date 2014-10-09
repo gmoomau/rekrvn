@@ -20,7 +20,8 @@
       ^(
         (?>
           (?>
-            (?>ad|bce?|eg|ex|ie|vs)\.|  # don't stop on vs.,ie., or similar
+            (?>ad|bce?|eg|ex|ie|
+               vs|st|St|Mrs?|[DJS]r)\.|  # don't stop on vs.,ie., or similar
             \d++(?>\.\d++)++|           # ex. 1.04 100.3 1.0.3.2
             (?>[^\s^\.]\.)++|           # ex. a.b.c.d., u.s.a.
             \([^\)]*+\)|                # anything inside parentheses
@@ -53,6 +54,7 @@
 
 (defn strip-formatting [raw]
   (-> raw
+    (s/replace #"&amp;" "&")
     (s/replace #"<[^>]+>" "")
     (s/replace #"\[\d+\]" "")))
 
