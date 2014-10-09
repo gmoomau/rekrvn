@@ -10,7 +10,7 @@
     (let [url "http://lemb.herokuapp.com/1"
           response (c/GET client url)]
       (c/await response)
-      (let [meat (c/string response)]
+      (let [meat (clojure.string/replace (c/string response) "\n" " ")]
         (reply mod-name meat)))))
 
 (defn lemb [_ reply]
