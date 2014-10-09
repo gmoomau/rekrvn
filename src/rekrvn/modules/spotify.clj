@@ -4,9 +4,10 @@
   (:use [cheshire.core]))
 
 (def modName "spotify")
+(def note (str (char 3) "3♫" (char 3)))
 
 (defn niceify [track]
-  (str "♫ " (-> track :track :artists first :name) " - " (:name (:track track))" ♫"))
+  (str note " " (-> track :track :artists first :name) " - " (:name (:track track)) " " note))
 
 (defn apiLookup [id]
   (with-open [client (c/create-client)]

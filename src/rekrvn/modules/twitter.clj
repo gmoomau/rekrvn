@@ -15,8 +15,9 @@
 ;; 0x02 bolds in irc and 0x0F (decimal 15) removes formatting
 ;; currently not used
 
-(defn color [text] (when text (str (char 3) "11" text (char 3))))
+(defn color [text] (when text (str (char 3) "11" text (char 15) (char 3))))
 ;; 0x03 is color and 11 is cyan
+;; (char 15) clears formatting. added to work around a bug in Circ
 
 (defn niceify [tweet]
   (when-let [user-string (color (:screen_name (:user tweet)))]

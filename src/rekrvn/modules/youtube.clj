@@ -7,8 +7,9 @@
 (defn niceify [title dur]
   (when title
     (str
-      (char 3) "1,0You" (char 3) "0,5Tube" (char 3) " " title
+      (char 3) "1,0You" (char 3) "0,5Tube" (char 15) (char 3) " " title
       " [" (format "%02d" (quot dur 60)) ":" (format "%02d" (rem dur 60)) "]")))
+;; (char 15) added to work around a bug in Circ
 
 (defn youtube [[vid] reply]
   (try ; xml/parse throws IOException on a bad url
