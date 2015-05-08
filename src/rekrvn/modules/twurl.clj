@@ -18,8 +18,11 @@
                                 (:user-token twitter-creds)
                                 (:user-secret twitter-creds)))
 (defn get-tweet [id]
-  (:body (statuses-show-id :oauth-creds my-creds
-                           :params {:id id :include_entities true})))
+  (try
+    ;; throws an exception if the tweet is protected or deleted
+    (:body (statuses-show-id :oauth-creds my-creds
+                             :params {:id id :include_entities true}))
+    (catch Exception e (println (str "Caught exception: " (.getMessage e))) nil)))
 
 (defn twurl [[tweetid] reply]
   (when-let [msg (util/niceify (get-tweet tweetid))]
