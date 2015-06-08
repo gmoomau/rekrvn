@@ -19,37 +19,61 @@
                                 (:user-token twitter-creds)
                                 (:user-secret twitter-creds)))
 
+(declare open-user-stream)
+(def wait 30000)
+
+;; TODO: multi-channel support
 (defn announce-tweet [tweet]
-  (let [announcement (str mod-name " forirc " twitter-stream-channel  " " (util/niceify tweet))]
-    (println announcement)
+  (let [announcement (str mod-name " forirc " twitter-stream-channel " " (util/niceify tweet))]
+    (println "announcing tweet: " announcement)
     (hub/broadcast announcement)))
 
+;; temporary, get rid of this or something. (replace with proper logging?)
+(defn announce-error [message]
+  (let [error (str mod-name " forirc faceroar##dump " message)]
+    (println "announcing error: " error)
+    (hub/broadcast error)))
+
+(defn json-to-tweet [tweet-string]
+  (try
+    (parse-string tweet-string true)
+    (catch Exception e
+      (announce-error "partial tweet happened"))))
 
 ;;;;;;;;;;; a chain of functions for thread stuff
-(defn handle-stream-component [stream response]
-  (let [string-response (str response)]
-    (when (not (blank? string-response))
-      (println "fromtweetstream" string-response)
-      (let [response-map (parse-string string-response true)]
-        (when (:text response-map)
-          (announce-tweet response-map))))))
+(defn handle-part [response json-bytes]
+  ;; TODO: stop being terrible and aggregate chunks
+  ;; TODO: distinguish between different types of messages from twitter
+  (let [json (str json-bytes)]
+    (when (not (blank? json))
+      (println "from" mod-name json)
+      (announce-error "got something")
+      (when-let [tweet (json-to-tweet json)]
+        (announce-tweet tweet)))))
 
-; supply a callback that only prints the text of the status
+(defn handle-failure [response]
+  (announce-error "twitter got mad"))
+;  (do
+;    (announce-error "twitter got mad")
+;    (Thread/sleep wait)
+;    (open-user-stream)))
+
+(defn handle-exception [response throwable]
+  (announce-error (str "exception " throwable)))
+;  (do
+;    (announce-error (str "exception " throwable))
+;    (println throwable)
+;    (Thread/sleep wait)
+;    (open-user-stream)))
+
+;; twitter response callback
 (def ^:dynamic *custom-streaming-callback*
-  (AsyncStreamingCallback.
-    handle-stream-component
-    (comp println response-return-everything)
-    exception-print))
+  (AsyncStreamingCallback. ;; on-bodypart, on-failure, on-exception
+    handle-part
+    handle-failure
+    handle-exception))
 
 (defn open-user-stream []
   (user-stream :oauth-creds my-creds :callbacks *custom-streaming-callback*))
 
-(defn start-getting-stream [pause]
-  ;; pause is for exponential delay on retries if i ever bother to implement that
-  (let [^:dynamic *response* (open-user-stream)]
-    (do
-      (Thread/sleep 60000); sleep for a minute, then cancel the async call
-      (:cancel (meta *response*)))))
-
-;;;;;;;;;;; this kicks off stuff in a thread or whatever
-(doto (Thread. #(start-getting-stream 1)) (.start))
+(open-user-stream)
