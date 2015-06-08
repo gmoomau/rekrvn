@@ -25,4 +25,4 @@
         (reply modName msg)))))
 
 (hub/addListener
-  modName #"(http://open.spotify.com/track/|spotify:track:)([\d\w]+)" trackStr)
+  modName #"(https?://open.spotify.com/track/|spotify:track:)([\d\w]+)" trackStr)
