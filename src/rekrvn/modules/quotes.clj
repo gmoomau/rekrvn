@@ -31,12 +31,11 @@
   (do
     (mongo/connect!)
     (case cmd
-      "add" (when line
-              (when-let
-                [[_ nick text] (re-matches #"([a-zA-Z0-9_-]+):? (.+)" line)]
-                (if (.getError (add-quote channel nick text))
-                  (reply modName "Error adding quote.")
-                  (reply modName "Quote added."))))
+      "add" (when-let
+              [[_ nick text] (and line (re-matches #"([a-zA-Z0-9_-]+):? (.+)" line))]
+              (if (.getError (add-quote channel nick text))
+                (reply modName "Error adding quote.")
+                (reply modName "Quote added.")))
       "remove" (if (= 0 (.getN (remove-quote channel line)))
                  (reply modName "There are no quotes like that to remove.")
                  (reply modName "Quote removed."))

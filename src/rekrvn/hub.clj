@@ -26,7 +26,7 @@
 
 (defn reload [modId]
   (do
-    (dosync (ref-set listeners (remove (fn [trig] (= modId (:mod trig))) @listeners)))
+    (dosync (ref-set listeners (remove (fn [trigger] (= modId (:mod trigger))) @listeners)))
     (require 'rekrvn.config :reload)
     (modload modId)))
 

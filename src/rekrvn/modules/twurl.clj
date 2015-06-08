@@ -25,7 +25,8 @@
     (catch Exception e (println (str "Caught exception: " (.getMessage e))) nil)))
 
 (defn twurl [[tweetid] reply]
-  (when-let [msg (util/niceify (get-tweet tweetid))]
-    (reply mod-name msg)))
+  (if-let [msg (util/niceify (get-tweet tweetid))]
+    (reply mod-name msg)
+    (reply mod-name "Couldn't get tweet.")))
 
 (hub/addListener mod-name #"https?://\S*twitter\.com\S*/status(?:es)?/(\d+)" twurl)

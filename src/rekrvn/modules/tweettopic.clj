@@ -22,5 +22,5 @@
       (statuses-update :oauth-creds my-creds
                        :params {:status truncated-text}))))
 
-(hub/addListener mod-name #"irc \S+ TOPIC (\S+) :(.+)$" tweet-topic)
+(hub/addListener mod-name #"irc \S+ TOPIC (\S+) :(.+\S.*)$" tweet-topic)
 
