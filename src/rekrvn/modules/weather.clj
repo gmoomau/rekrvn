@@ -1,57 +1,95 @@
 (ns rekrvn.modules.weather
   (:require [rekrvn.hub :as hub]
             [rekrvn.modules.mongo :as mongo]
-            [http.async.client :as c]
+            [http.async.client :as http]
             [clojure.string :as s])
-  (:use [http.async.client.request :only [url-encode]]))
+  (:use     [rekrvn.config :only [weather-key]]
+            [cheshire.core]
+            [http.async.client.request :only [url-encode]]))
 
 (def mod-name "weather")
 
-(defn niceify [raw-weather]
-  (let [regx #"(\d?\d:\d\d \S+ \S+).+\|(-?\d+)\|[^|]+\|[^|]+\|(\d+%)\|[^|]+\|[^|]+\|(\d+\.\d+)\|([^|]+)\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|([^|]+)\|([^|]+)\|[^|]+\|[^|]+\|[^|]+\|(?:[^|]+|)"
-        [clock temp humidity pressure sky sloc bloc] (rest (re-find regx raw-weather))]
-    (str sloc ", " bloc " (" clock "): " temp "°F - " sky " | "
-         humidity " Humidity | Barometer: " pressure)))
+(defn request [url]
+  (with-open [client (http/create-client)]
+    (let [response (http/GET client url)]
+      (http/await response)
+      (parse-string (http/string response) true))))
 
+(defn str-to-loc [location]
+  (->> location
+    url-encode
+    (str "http://autocomplete.wunderground.com/aq?h=0&format=json&query=")
+    request
+    :RESULTS
+    first))
 
-(defn api-lookup [location]
-  (with-open [client (c/create-client)]
-    (let [url (str "http://www.wunderground.com/auto/raw/" (url-encode location))
-          response (c/GET client url)]
-      (c/await response)
-      (c/string response))))
+(defn latlon [loc-info]
+  (str (:lat loc-info) "," (:lon loc-info)))
 
-(defn tell-weather [location reply]
-  (if location
-    ;; store the location and get weather
-    (if-let [raw-weather (api-lookup location)]
-      (reply mod-name (niceify raw-weather))
-      (reply mod-name (str "This thing is really picky about locations. Try a zip code or"
-                           " 3-letter airport code. Also .w is broken so maybe just give up.")))))
+(defn get-weather [loc-info]
+  (let [query (str
+                "https://api.forecast.io/forecast/"
+                weather-key "/"
+                (latlon loc-info) ","
+                (quot (System/currentTimeMillis) 1000))
+        weather (request query)]
+    (if (:error weather)
+      nil
+      weather)))
 
-(defn location-for-nick [nick channel]
-  (:location (first (mongo/get-docs mod-name {:nick nick :channel channel}))))
+(defn make-forecast [location weather]
+  ;; todo: graphs for precip, maybe temp
+  ;; grammar for smarter weather
+  ;;   ie. build string differently based on values present
+  (let [loc (:name location)
+        now (:currently weather)
+        summary (:summary now)
+        temp (:temperature now)
+        feels-like (:apparentTemperature now)
+        humidity (int (* 100 (:humidity now)))
+        wind (:windSpeed now)]
+    (str loc ": " summary " | " temp "°F (feels like " feels-like "°F) | " humidity "% humidity | wind " wind "mph")))
 
-(defn weather [[speaker channel is-nick content] reply]
-  (if (or is-nick (not content))
-    ;; .w
-    ;; .w @NICK
-    (let [nick (s/lower-case (or content speaker))]
-      (do ;; get weather for that nick
-        (mongo/connect!)
-        (if-let [loc (location-for-nick nick channel)]
-          (tell-weather loc reply)
-          (reply mod-name (str "No location stored for " nick ".")))
-        (mongo/disconnect!)))
-    ;; .w PLACE
-    (let [nick (s/lower-case speaker)]
-      (do ;; store location for nick, get weather
-        (mongo/connect!)
-        (mongo/remove mod-name {:nick nick :channel channel})
-        (mongo/insert mod-name {:nick nick :channel channel :location content})
-        (mongo/disconnect!)
-        (tell-weather content reply)))))
+(defn store-place [nick channel loc-info]
+  (mongo/connect!)
+  (mongo/remove mod-name {:nick (s/lower-case nick) :channel channel})
+  (mongo/insert mod-name {:nick (s/lower-case nick)
+                          :channel channel
+                          :loc loc-info})
+  (mongo/disconnect!))
 
-;; syntax: .w [PLACE | @NICK]
-(hub/addListener "weather" #"^irc :(\S+)!\S+ PRIVMSG (\S+) :\.w(?:eather)?(?: (@)?(.+)?)?$" weather)
-;;                            speaker^                 ^channel         is-nick^   ^content
+(defn get-place [nick channel]
+  (mongo/connect!)
+  (let [place (first (mongo/get-docs mod-name {:nick (s/lower-case nick) :channel channel}))]
+    (mongo/disconnect!)
+    place))
+
+(defn forecast-for-nick [[speaker channel nick] reply]
+;; .w @nick
+  (if-let [place (:loc (get-place nick channel))]
+    (if-let [weather (get-weather place)]
+      (reply mod-name (make-forecast place weather))
+      (reply mod-name (str "Can't get weather for " nick)))
+    (reply mod-name (str "Can't find weather for " nick))))
+
+(defn forecast-for-speaker [[nick channel] reply]
+;; .w
+  (forecast-for-nick [nick channel nick] reply))
+
+(defn forecast-for-location [[nick channel location] reply]
+;; .w location
+  (if-let [loc-info (str-to-loc location)]
+    (if-let [weather (get-weather loc-info)]
+      (do
+        (store-place nick channel loc-info)
+        (reply mod-name (make-forecast loc-info weather)))
+      (reply mod-name (str "Can't get weather for " (:name loc-info))))
+    (reply mod-name (str "Can't find location: " location))))
+
+;; .w
+(hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG (\S+) :\.w(?:eather)?\s*$" forecast-for-speaker)
+;; .w @nick
+(hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG (\S+) :\.w(?:eather)?\s+@(\S+)\s*$" forecast-for-nick)
+;; .w location
+(hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG (\S+) :\.w(?:eather)?\s+([^@].+)\s*$" forecast-for-location)
+
