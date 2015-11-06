@@ -1,15 +1,13 @@
 (ns rekrvn.modules.twurl
   (:require [rekrvn.hub :as hub])
   (:require [rekrvn.modules.twitter :as util])
-  (:use [cheshire.core])
   (:use [rekrvn.config :only [twitter-creds]])
-  ;; consumer-key, consumer-token, user-token, user-secret
   (:use
     [twitter.oauth]
     [twitter.callbacks]
     [twitter.callbacks.handlers]
     [twitter.api.restful])
-  (:import (twitter.callbacks.protocols AsyncSingleCallback)))
+  (:import (twitter.callbacks.protocols SyncSingleCallback)))
 
 (def mod-name "twurl")
 
@@ -29,4 +27,4 @@
     (reply mod-name msg)
     (reply mod-name "Couldn't get tweet.")))
 
-(hub/addListener mod-name #"https?://\S*twitter\.com\S*/status(?:es)?/(\d+)" twurl)
+(hub/addListener mod-name #"https?://(?:\S*.)?twitter\.com\S*/status(?:es)?/(\d+)" twurl)
