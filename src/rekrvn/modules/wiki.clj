@@ -50,7 +50,7 @@
         results (web-request query)
         parsed (parse-string results true)
         wiki (choose-link parsed)]
-      (and wiki (s/replace (:link wiki) #"http:" "https:"))))
+      (when wiki (s/replace (:link wiki) #"http:" "https:"))))
 
 (defn strip-formatting [raw]
   (-> raw

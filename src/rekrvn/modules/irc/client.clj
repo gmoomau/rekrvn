@@ -3,8 +3,7 @@
   (:use [rekrvn.config :only [irc-opts]])
   (:import (java.net Socket)
            (java.lang Thread)
-           (java.io PrintWriter InputStreamReader BufferedReader File))
-  )
+           (java.io PrintWriter InputStreamReader BufferedReader File)))
 
 (def modName "irc")
 
@@ -43,8 +42,7 @@
   (when-let [permSet (get @modPerms recip)]
     (if (:defaultAllow permSet) ;; deny by default unless config says otherwise
       (not (contains? (:blacklist permSet) module)) ;; check blacklist
-      (contains? (:whitelist permSet) module) ;; if default deny, check whitelist
-      )))
+      (contains? (:whitelist permSet) module)))) ;; if default deny, check whitelist
 
 (defn modAllow [network channel module]
   (let [recip (str network "#" channel)
@@ -54,7 +52,9 @@
         (alter modPerms update-in [recip :whitelist] conj module)
         (alter modPerms update-in [recip :blacklist] disj module))
       (dosync (alter modPerms
-                     assoc recip {:defaultAllow false :blacklist #{} :whitelist #{module}})))))
+                     assoc
+                     recip
+                     {:defaultAllow false :blacklist #{} :whitelist #{module}})))))
 
 (defn modDeny [network channel module]
   (let [recip (str network "#" channel)
@@ -92,8 +92,7 @@
                    (write conn (str "NICK " nick))
                    (write conn (str "USER " nick " 0 * :" (:realname server))))
         ping-response (fn [msg]
-                        (write conn (str "PONG " (re-find #":.*" msg))))
-        ]
+                        (write conn (str "PONG " (re-find #":.*" msg))))]
     ;; register with server
     (register (:nick server))
 
@@ -168,7 +167,7 @@
     ;; only gets here when it receives the exit command
     (dosync
       (write conn "QUIT")
-      (ref-set currentChannels (remove (fn [chan] (re-find (re-pattern (str "^" network "#")) chan)) @currentChannels))
+      (ref-set currentChannels (remove #(re-find (re-pattern (str "^" network "#")) %) @currentChannels))
       (alter connections dissoc network))))
 
 (defn startirc []
@@ -182,8 +181,7 @@
           (alter modPerms
                  assoc (str (:network server) "#" (:channel perm)) (merge emptyPerms perm)))))
     ;; connect to server if specified
-    (when (:autoConnect server) (connect server)))
-  )
+    (when (:autoConnect server) (connect server))))
 
 
 ;; definitions done, actually doing stuff now

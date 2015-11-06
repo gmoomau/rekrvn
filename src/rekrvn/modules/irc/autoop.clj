@@ -3,6 +3,7 @@
             [rekrvn.config :as conf]))
 
 ;; TODO: use settings in config file instead of hardcoding
+;;       list of channel/network
 
 (defn op [[nick channel] reply]
   (prn "autooping" nick channel)
