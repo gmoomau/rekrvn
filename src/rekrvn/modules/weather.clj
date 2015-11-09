@@ -10,10 +10,12 @@
 (def mod-name "weather")
 
 (defn request [url]
-  (with-open [client (http/create-client)]
-    (let [response (http/GET client url)]
-      (http/await response)
-      (parse-string (http/string response) true))))
+  (try
+    (with-open [client (http/create-client)]
+      (let [response (http/GET client url)]
+        (http/await response)
+        (parse-string (http/string response) true)))
+    (catch Exception e (println (str "Caught exception: " (.getMessage e))) nil)))
 
 (defn str-to-loc [location]
   (->> location
