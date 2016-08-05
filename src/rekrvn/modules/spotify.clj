@@ -7,11 +7,11 @@
 (def note (str (char 3) "3♫" (char 3)))
 
 (defn niceify [track]
-  (str note " " (-> track :track :artists first :name) " - " (:name (:track track)) " " note))
+  (str note " " (-> track :artists first :name) " - " (:name track) " " note))
 
 (defn apiLookup [id]
   (with-open [client (c/create-client)]
-    (let [url (str "http://ws.spotify.com/lookup/1/.json?uri=spotify:track:" id)
+    (let [url (str "https://api.spotify.com/v1/tracks/" id)
           response (c/GET client url)]
       (c/await response)
       (c/string response))))
