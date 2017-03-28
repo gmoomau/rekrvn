@@ -15,4 +15,4 @@
       (reply-fn modName (str "     /" line "┘"))))
   (reply-fn modName (faces emote)))
 
-(hub/addListener modName #"^irc.*PRIVMSG \S+ :\.(shrug|tdn|tup)( .+)?$" say)
+(hub/addListener modName #"^irc.*PRIVMSG \S+ :.*\s?\.(shrug|tdn|tup)( .+)?$" say)
