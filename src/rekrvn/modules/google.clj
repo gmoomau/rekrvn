@@ -34,7 +34,7 @@
 
 (defn google [[search-str] reply]
   (let [all-results (search-url search-str)
-        top-result (plaintext (get-top search-str))]
+        top-result (str "\"" (plaintext (get-top search-str)) "\"")]
     (if top-result
       (reply mod-name (str top-result " more: " all-results))
       (reply mod-name all-results))))
