@@ -71,8 +71,11 @@
         "could mean a lot of things" ; it's a disambiguation page
         "couldn't figure out the description")))) ; couldn't find a blurb
 
-(defn trigger-from-link [[link] reply]
-  (reply mod-name (get-blurb link)))
+(defn trigger-from-link [[link mobile] reply]
+  (if mobile
+    (let [regular-link (clojure.string/replace link #"en\.m\." "en.")]
+      (reply mod-name (str regular-link " " (get-blurb link))))
+    (reply mod-name (get-blurb link))))
 
 (defn wiki [[terms] reply]
   (if-let [link (get-wiki-link terms)]
@@ -80,4 +83,4 @@
     (reply mod-name "no wiki links found")))
 
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.wiki (.+)$" wiki)
-(hub/addListener mod-name #"(https?://en\.wikipedia\.org/wiki/\S+)" trigger-from-link)
+(hub/addListener mod-name #"(https?://en\.(m\.)?wikipedia\.org/wiki/\S+)" trigger-from-link)
