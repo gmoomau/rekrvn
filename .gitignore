@@ -5,6 +5,8 @@
 /native
 /target
 /.lein-failures
+/.lein-git-deps
+/.lein-repl-history
 /checkouts
 /.lein-deps-sum
 *.swp
