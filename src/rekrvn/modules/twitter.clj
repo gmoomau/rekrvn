@@ -9,7 +9,7 @@
     (clojure.string/replace "&gt;" ">")
     (clojure.string/replace "&lt;" "<")
     (clojure.string/replace "&amp;" "&")
-    (clojure.string/replace "\n" " ")))
+    (clojure.string/replace "\n" "   ")))
 
 (defn bold [text] (when text (str (char 2) text (char 15) )))
 ;; 0x02 bolds in irc and 0x0F (decimal 15) removes formatting
@@ -20,6 +20,7 @@
 ;; (char 15) clears formatting. added to work around a bug in Circ
 
 (defn niceify [tweet]
-  (when-let [user-string (color (:screen_name (:user tweet)))]
-    (str user-string " " (expand-links (plaintext (:text tweet)) (:urls (:entities tweet))))))
+  (when tweet
+    (when-let [user-string (color (str "@" (:screen_name (:user tweet))))]
+      (str user-string " " (expand-links (plaintext (:text tweet)) (:urls (:entities tweet)))))))
 
