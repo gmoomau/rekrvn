@@ -1,8 +1,13 @@
 (ns rekrvn.modules.twitter)
 ;; tweet formatter
 
+(defn- expand-single-link [text short-url long-url]
+  (if long-url
+    (clojure.string/replace text short-url long-url)
+    text))
+
 (defn expand-links [text urls]
-  (reduce #(clojure.string/replace %1 (:url %2) (:expanded_url %2)) text urls))
+  (reduce #(expand-single-link %1 (:url %2) (:expanded_url %2)) text urls))
 
 (defn plaintext [text]
   (-> text
