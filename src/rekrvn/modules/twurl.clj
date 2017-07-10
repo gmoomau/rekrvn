@@ -19,7 +19,7 @@
   (try
     ;; throws an exception if the tweet is protected or deleted
     (:body (statuses-show-id :oauth-creds my-creds
-                             :params {:id id :include_entities true}))
+                             :params {:id id :include_entities true :tweet_mode "extended"}))
     (catch Exception e (println (str "Caught exception: " (.getMessage e))) nil)))
 
 (defn twurl [[tweetid] reply]

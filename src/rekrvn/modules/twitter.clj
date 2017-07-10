@@ -24,8 +24,18 @@
 ;; 0x03 is color and 11 is cyan
 ;; (char 15) clears formatting. added to work around a bug in Circ
 
+(defn full-tweet-text [tweet]
+  ; twitter truncates some tweets. undo that.
+  (cond
+    (:retweeted_status tweet) (let [rtd_name (re-find #"RT @[^:]+: " (:text tweet))
+                                    message (-> tweet :retweeted_status :text)]
+                                (str rtd_name message))
+    (:extended_tweet tweet) (-> tweet :extended_tweet :full_text)
+    (:full_text tweet) (:full_text tweet)
+    :else (:text tweet)))
+
 (defn niceify [tweet]
   (when tweet
     (when-let [user-string (color (str "@" (:screen_name (:user tweet))))]
-      (str user-string " " (expand-links (plaintext (:text tweet)) (:urls (:entities tweet)))))))
+      (str user-string " " (expand-links (plaintext (full-tweet-text tweet)) (:urls (:entities tweet)))))))
 
