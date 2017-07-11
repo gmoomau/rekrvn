@@ -32,25 +32,50 @@
   (let [query (str
                 "https://api.forecast.io/forecast/"
                 weather-key "/"
-                (latlon loc-info) ","
-                (quot (System/currentTimeMillis) 1000))
+                (latlon loc-info))
+                ;"," (quot (System/currentTimeMillis) 1000))
         weather (request query)]
     (if (:error weather)
       nil
       weather)))
 
+(def sparks ["_" "▁" "▂" "▃" "▄" "▅" "▆" "▇" "█"]); "_" was removed. add it back?
+(defn make-sparkline
+  ([data] (make-sparkline data (apply min data) (apply max data)))
+  ([data low high]
+    ; _ for low, otherwise normal sparks. this is why there's (dec ..)
+   ;    and (- .. 0.001) and (inc (Math/floor ..)) in the map
+    (let [step (* 1.001 (/ (- high low) (dec (count sparks))))
+          ;; *1.001 so that max doesn't cause array index out of bounds
+          heights (map #(inc (int (Math/floor (/ (- % low 0.001) step)))) data)]
+      (apply str (map sparks heights)))))
+
+
 (defn make-forecast [location weather]
-  ;; todo: graphs for precip, maybe temp
-  ;; grammar for smarter weather
-  ;;   ie. build string differently based on values present
-  (let [loc (:name location)
+  (let [lbracket (str (char 3) "14[" (char 3))
+        rbracket (str (char 3) "14]" (char 3))
+        loc (:name location)
         now (:currently weather)
-        summary (:summary now)
-        temp (:temperature now)
-        feels-like (:apparentTemperature now)
-        humidity (int (* 100 (:humidity now)))
-        wind (:windSpeed now)]
-    (str loc ": " summary " | " temp "°F (feels like " feels-like "°F) | " humidity "% humidity | wind " wind "mph")))
+        now-str (str "Now: " (:summary now) " | " (:temperature now) "°F | "
+                     (int (* 100 (:humidity now))) "% humidity")
+        hourly (-> weather :hourly :data)
+        hourly-summary (-> weather :hourly :summary)
+        hi (str (char 3) "07" (inc (int (apply max (map :temperature hourly)))) (char 3))
+        lo (str (char 3) "11" (int (apply min (map :temperature hourly))) (char 3))
+        ;temp-spark (make-sparkline (map :temperature hourly))
+        max-rain (int (* 100 (apply max (map :precipProbability hourly))))
+        rain-spark (make-sparkline (map :precipProbability hourly) 0 1)
+        alert-title (-> weather :alerts first :title)
+        alert-link (-> weather :alerts first :uri)]
+    (str loc
+         (when alert-title
+           (str " " lbracket "05" alert-title (char 3) " " alert-link " " rbracket " "))
+         " " lbracket  now-str  rbracket " "
+         lbracket "Next 24hrs: " hourly-summary " | " lo "°-" hi "°"; | " temp-spark
+         (when (> max-rain 0)
+           (str " | " max-rain "% chance of rain"
+                (when (>= max-rain 20) (str " " (char 3) "02" rain-spark))))
+         rbracket)))
 
 (defn store-home [nick channel loc-info]
   ;; saves home for nick/channel in db
@@ -98,7 +123,7 @@
 ;; .w
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG (\S+) :\.w(?:eather)?\s*$" forecast-for-speaker)
 ;; .w @something
-(hub/addListener mod-name #"^.*PRIVMSG (\S+) :\.w(?:eather)?\s+@(.*)$" check-forecast)
+(hub/addListener mod-name #"^.*PRIVMSG (\S+) :\.w(?:eather)?\s+@(.+)\s*$" check-forecast)
 ;; .w location
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG (\S+) :\.w(?:eather)?\s+([^@].+)\s*$" forecast-for-location)
 
