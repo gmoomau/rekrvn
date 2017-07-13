@@ -4,6 +4,7 @@
             [http.async.client.request :refer [url-encode]]
             [rekrvn.config :refer [weather-key]]
             [rekrvn.hub :as hub]
+            [rekrvn.modules.bitly :as bitly]
             [rekrvn.modules.mongo :as mongo]))
 
 (def mod-name "weather")
@@ -43,10 +44,10 @@
   ([data] (make-sparkline data (apply min data) (apply max data)))
   ([data low high]
     ; _ for low, otherwise normal sparks. this is why there's (dec ..)
-   ;    and (- .. 0.001) and (inc (Math/floor ..)) in the map
+    ;    and (- .. 0.001) and (inc (Math/floor ..)) in the map
     (let [step (* 1.001 (/ (- high low) (dec (count sparks))))
-          ;; *1.001 so that max doesn't cause array index out of bounds
-          heights (map #(inc (int (Math/floor (/ (- % low 0.001) step)))) data)]
+      ; *1.001 so that max doesn't cause array index out of bounds
+      heights (map #(inc (int (Math/floor (/ (- % low 0.001) step)))) data)]
       (apply str (map sparks heights)))))
 
 
@@ -55,8 +56,13 @@
         rbracket (str (char 3) "14]" (char 3))
         loc (:name location)
         now (:currently weather)
-        now-str (str "Now: " (:summary now) " | " (:temperature now) "°F | "
-                     (int (* 100 (:humidity now))) "% humidity")
+        humidity (int (* 100 (:humidity now)))
+        wind (int (:windSpeed now))
+        now-str (str "Now: " (:summary now) " | " (:temperature now) "°F"
+                     (when (or (< humidity 30) (> humidity 65))
+                       (str " | " humidity "% humidity"))
+                     (when (> wind 30)
+                       (str " | wind " wind "mph")))
         hourly (-> weather :hourly :data)
         hourly-summary (-> weather :hourly :summary)
         hi (str (char 3) "07" (inc (int (apply max (map :temperature hourly)))) (char 3))
@@ -65,7 +71,7 @@
         max-rain (int (* 100 (apply max (map :precipProbability hourly))))
         rain-spark (make-sparkline (map :precipProbability hourly) 0 1)
         alert-title (-> weather :alerts first :title)
-        alert-link (-> weather :alerts first :uri)]
+        alert-link (-> weather :alerts first :uri bitly/shorten-link)]
     (str loc
          (when alert-title
            (str " " lbracket "05" alert-title (char 3) " " alert-link " " rbracket " "))
