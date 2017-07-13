@@ -3,6 +3,7 @@
 
 (def modName "irc.emote")
 (def faces {"shrug" "¯\\_(ツ)_/¯"
+            "fuckit" "¯\\_(ツ)_/¯"
             "tdn"   "q-(ツ)-q"
             "tup"   "d-(ツ)-d"})
 
@@ -14,4 +15,4 @@
       (reply-fn modName (str "     /" line "┘"))))
   (reply-fn modName (faces emote)))
 
-(hub/addListener modName #"^irc.*PRIVMSG \S+ :.*\s?\.(shrug|tdn|tup)( .+)?$" say)
+(hub/addListener modName #"^irc.*PRIVMSG \S+ :.*\s?\.(shrug|fuckit|tdn|tup)( .+)?$" say)
