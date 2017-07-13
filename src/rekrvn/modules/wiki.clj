@@ -1,11 +1,10 @@
 (ns rekrvn.modules.wiki
-  (:require [rekrvn.hub :as hub])
-  (:use [rekrvn.config :only [google-key]])
-  (:require [http.async.client :as c])
-  (:use [http.async.client.request :only [url-encode]])
-  (:require [net.cgrand.enlive-html :as h])
-  (:require [clojure.string :as s])
-  (:use [cheshire.core]))
+  (:require [cheshire.core :refer [parse-string]]
+            [http.async.client :as c]
+            [http.async.client.request :refer [url-encode]]
+            [net.cgrand.enlive-html :as h]
+            [rekrvn.config :refer [google-key]]
+            [rekrvn.hub :as hub]))
 
 (def mod-name "wiki")
 (def query-base (str
@@ -50,13 +49,13 @@
         results (web-request query)
         parsed (parse-string results true)
         wiki (choose-link parsed)]
-      (when wiki (s/replace (:link wiki) #"http:" "https:"))))
+      (when wiki (clojure.string/replace (:link wiki) #"http:" "https:"))))
 
 (defn strip-formatting [raw]
   (-> raw
-    (s/replace #"&amp;" "&")
-    (s/replace #"<[^>]+>" "")
-    (s/replace #"\[\d+\]" "")))
+    (clojure.string/replace #"&amp;" "&")
+    (clojure.string/replace #"<[^>]+>" "")
+    (clojure.string/replace #"\[\d+\]" "")))
 
 (defn get-blurb [url]
   (let [tree (h/html-resource (java.net.URL. url))

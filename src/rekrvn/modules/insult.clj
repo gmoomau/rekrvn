@@ -1,6 +1,5 @@
 (ns rekrvn.modules.insult
-  (:require [rekrvn.hub :as hub])
-  (:require [clojure.string :as str :refer [join]]))
+  (:require [rekrvn.hub :as hub]))
 
 (def modName "insult")
 
@@ -9,7 +8,7 @@
 (def c ["apple-john" "baggage" "barnacle" "bladder" "boar-pig" "bugbear" "bum-bailey" "canker-blossom" "clack-dish" "clotpole" "coxcomb" "codpiece" "death-token" "dewberry" "flap-dragon" "flax-wench" "flirt-gill" "foot-licker" "fustilarian" "giglet" "gudgeon" "haggard" "harpy" "hedge-pig" "horn-beast" "huggerpmugger" "joithead" "lewdster" "lout" "maggot-pie" "malt-worm" "mammet" "measle" "minnow" "miscreant" "moldwarp" "mumble-news" "nut-hook" "pidgeon-egg" "pignut" "puttock" "pumpion" "ratsbane" "scut" "skainsmate" "strumpet" "varlot" "vassal" "whey-faced" "wagtail"])
 
 (defn make-insult [[nick target] reply]
-  (let [rand-insult (str/join " " (map rand-nth [a b c]))]
+  (let [rand-insult (clojure.string/join " " (map rand-nth [a b c]))]
     (reply modName (str (or target nick) ", thou " rand-insult "!"))))
 
 (hub/addListener modName #"^irc :(\S+)!\S+ PRIVMSG \S+ :\.(?:insult|burne)(?: (.*\S))?\s*$" make-insult)

@@ -1,9 +1,8 @@
 (ns rekrvn.modules.irc.client
-  (:require [rekrvn.hub :as hub])
-  (:use [rekrvn.config :only [irc-opts]])
-  (:import (java.net Socket)
-           (java.lang Thread)
-           (java.io PrintWriter InputStreamReader BufferedReader File)))
+  (:require [rekrvn.config :refer [irc-opts]]
+            [rekrvn.hub :as hub])
+  (:import (java.io BufferedReader InputStreamReader PrintWriter)
+           (java.net Socket)))
 
 (def modName "irc")
 

@@ -1,7 +1,6 @@
 (ns rekrvn.modules.quotes
   (:require [rekrvn.hub :as hub]
-            [rekrvn.modules.mongo :as mongo]
-            [clojure.string :as s]))
+            [rekrvn.modules.mongo :as mongo]))
 
 ;; Usage:
 ;; .quote add <line>
@@ -19,7 +18,7 @@
 
 (defn get-quote [chan search-term]
   (if search-term
-    (let [terms (s/split search-term #"\s+")
+    (let [terms (clojure.string/split search-term #"\s+")
           regexs (map #(re-pattern (str "(?i)" %)) terms)
           re-maps (map (fn [r] {:text r}) regexs)]
       (mongo/get-rand-as-map modName {:channel chan '$and re-maps}))

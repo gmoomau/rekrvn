@@ -1,9 +1,8 @@
 (ns rekrvn.modules.resistance.interface
-  (:require [rekrvn.hub :as hub])
-  (:require [clojure.string :as s])
-  (:require [rekrvn.config :only resistance])
-  (:require [rekrvn.modules.irc.client :as irc])
-  (:require [rekrvn.modules.resistance.engine :as e]))
+  (:require [clojure.string :as s]
+            [rekrvn.hub :as hub]
+            [rekrvn.modules.irc.client :as irc]
+            [rekrvn.modules.resistance.engine :as e]))
 
 (def mod-name "resistance.interface")
 

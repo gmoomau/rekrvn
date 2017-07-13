@@ -1,8 +1,7 @@
 (ns rekrvn.modules.mtg
-  (:require [rekrvn.hub :as hub])
-  (:require [http.async.client :as c])
-  (:require [net.cgrand.enlive-html :as h])
-  (:use [cheshire.core]))
+  (:require [http.async.client :as c]
+            [net.cgrand.enlive-html :as h]
+            [rekrvn.hub :as hub]))
 
 (def mod-name "mtg")
 

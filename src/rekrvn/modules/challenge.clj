@@ -1,6 +1,5 @@
 (ns rekrvn.modules.challenge
-  (:require [rekrvn.hub :as hub]
-            ))
+  (:require [rekrvn.hub :as hub]))
 
 ;; Usage:
 ;; .chal ;; presents current challenge

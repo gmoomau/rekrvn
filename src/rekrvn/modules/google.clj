@@ -1,12 +1,10 @@
 (ns rekrvn.modules.google
-  (:require [rekrvn.hub :as hub])
-  (:use [rekrvn.config :only [google-key]])
-  (:use [rekrvn.modules.twitter :only [plaintext]])
-  (:require [http.async.client :as c])
-  (:use [http.async.client.request :only [url-encode]])
-  (:require [net.cgrand.enlive-html :as h])
-  (:require [clojure.string :as s])
-  (:use [cheshire.core]))
+  (:require [cheshire.core :refer [parse-string]]
+            [http.async.client :as c]
+            [http.async.client.request :refer [url-encode]]
+            [rekrvn.config :refer [google-key]]
+            [rekrvn.hub :as hub]
+            [rekrvn.modules.twitter :refer [plaintext]]))
 
 (def mod-name "google")
 (def query-base (str

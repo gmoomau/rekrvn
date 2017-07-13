@@ -1,7 +1,6 @@
 (ns rekrvn.modules.lemb
-  (:require [rekrvn.hub :as hub])
-  (:require [http.async.client :as c])
-  (:use [http.async.client.request :only [url-encode]]))
+  (:require [http.async.client :as c]
+            [rekrvn.hub :as hub]))
 
 (def mod-name "lemb")
 

@@ -1,10 +1,9 @@
 (ns rekrvn.modules.mongo
-  (:refer-clojure :exclude [sort find remove])
-  (:require [monger.core :as mg]
-            [monger.collection :as mc])
-  (:use monger.query monger.operators)
-  (:import [com.mongodb MongoOptions ServerAddress]
-           [org.bson.types ObjectId]))
+  (:require [monger.collection :as mc]
+            [monger.core :as mg]
+            [monger.query :as mq])
+  (:import (org.bson.types ObjectId))
+  (:refer-clojure :exclude [find remove sort]))
 
 ;; pretty thin wrapper around monger
 ;; basically only exists for get-rand-as-map
@@ -35,10 +34,10 @@
   ;; field for all documents) is not uniformly random
   (let [num-docs (mc/count from finder)]
     ;; with-collection returns a list
-    (first (with-collection from
-                            (find finder)
-                            (skip (rand num-docs))
-                            (limit 1)))))
+    (first (mq/with-collection from
+                            (mq/find finder)
+                            (mq/skip (rand num-docs))
+                            (mq/limit 1)))))
 
 (defn get-docs [from finder]
    ;; returns all documents matching finder

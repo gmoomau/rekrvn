@@ -1,13 +1,10 @@
 (ns rekrvn.modules.tweetstream
-  (:require [rekrvn.hub :as hub])
-  (:use [cheshire.core])
-  (:use [rekrvn.config :only [twitter-creds twitter-stream-channel]])
-  (:require [rekrvn.modules.twitter :as util])
-  (:require [twitter-streaming-client.core :as twclient]
-            [twitter.oauth :as oauth])
-  (:use [clojure.string :only [blank?]])
-  (:require [http.async.client :as ac])
-  (:import (java.lang Thread)))
+  (:require [rekrvn.config :refer [twitter-creds
+                                   twitter-stream-channel]]
+            [rekrvn.hub :as hub]
+            [rekrvn.modules.twitter :as util]
+            [twitter-streaming-client.core :as twclient]
+            [twitter.oauth :as oauth]))
 
 (def mod-name "tweetstream")
 

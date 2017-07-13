@@ -1,6 +1,5 @@
 (ns rekrvn.modules.irc.emote
-  (:require [rekrvn.hub :as hub])
-  (:use [clojure.string :only [join]]))
+  (:require [rekrvn.hub :as hub]))
 
 (def modName "irc.emote")
 (def faces {"shrug" "¯\\_(ツ)_/¯"
@@ -9,7 +8,7 @@
 
 (defn say [[emote message] reply-fn]
   (when message
-    (let [line (and message (-> message count inc (repeat "─") join))]
+    (let [line (and message (-> message count inc (repeat "─") clojure.string/join))]
       (reply-fn modName (str "     ┌" line "┐"))
       (reply-fn modName (str "     │" message " │"))
       (reply-fn modName (str "     /" line "┘"))))

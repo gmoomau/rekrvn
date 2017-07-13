@@ -1,13 +1,8 @@
 (ns rekrvn.modules.tweettopic
-  (:require [rekrvn.hub :as hub])
-  (:use [rekrvn.config :only [twitter-creds]])
-  ;; consumer-key, consumer-token, user-token, user-secret
-  (:use
-    [twitter.oauth]
-    [twitter.callbacks]
-    [twitter.callbacks.handlers]
-    [twitter.api.restful])
-  (:import (twitter.callbacks.protocols AsyncSingleCallback)))
+  (:require [rekrvn.config :refer [twitter-creds]]
+            [rekrvn.hub :as hub]
+            [twitter.api.restful :refer :all]
+            [twitter.oauth :refer :all]))
 
 (def mod-name "tweettopic")
 

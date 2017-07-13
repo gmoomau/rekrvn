@@ -1,13 +1,9 @@
 (ns rekrvn.modules.twurl
-  (:require [rekrvn.hub :as hub])
-  (:require [rekrvn.modules.twitter :as util])
-  (:use [rekrvn.config :only [twitter-creds]])
-  (:use
-    [twitter.oauth]
-    [twitter.callbacks]
-    [twitter.callbacks.handlers]
-    [twitter.api.restful])
-  (:import (twitter.callbacks.protocols SyncSingleCallback)))
+  (:require [rekrvn.config :refer [twitter-creds]]
+            [rekrvn.hub :as hub]
+            [rekrvn.modules.twitter :as util]
+            [twitter.api.restful :refer :all]
+            [twitter.oauth :refer :all]))
 
 (def mod-name "twurl")
 

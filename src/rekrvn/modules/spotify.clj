@@ -1,7 +1,7 @@
 (ns rekrvn.modules.spotify
-  (:require [rekrvn.hub :as hub])
-  (:require [http.async.client :as c])
-  (:use [cheshire.core]))
+  (:require [cheshire.core :refer [parse-string]]
+            [http.async.client :as c]
+            [rekrvn.hub :as hub]))
 
 (def modName "spotify")
 (def note (str (char 3) "3♫" (char 3)))

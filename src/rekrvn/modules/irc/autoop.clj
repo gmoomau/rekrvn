@@ -1,6 +1,5 @@
 (ns rekrvn.modules.irc.autoop
-  (:require [rekrvn.hub :as hub]
-            [rekrvn.config :as conf]))
+  (:require [rekrvn.hub :as hub]))
 
 ;; TODO: use settings in config file instead of hardcoding
 ;;       list of channel/network

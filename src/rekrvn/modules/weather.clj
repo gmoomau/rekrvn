@@ -1,11 +1,10 @@
 (ns rekrvn.modules.weather
-  (:require [rekrvn.hub :as hub]
-            [rekrvn.modules.mongo :as mongo]
+  (:require [cheshire.core :refer [parse-string]]
             [http.async.client :as http]
-            [clojure.string :as s])
-  (:use     [rekrvn.config :only [weather-key]]
-            [cheshire.core]
-            [http.async.client.request :only [url-encode]]))
+            [http.async.client.request :refer [url-encode]]
+            [rekrvn.config :refer [weather-key]]
+            [rekrvn.hub :as hub]
+            [rekrvn.modules.mongo :as mongo]))
 
 (def mod-name "weather")
 
@@ -80,8 +79,8 @@
 (defn store-home [nick channel loc-info]
   ;; saves home for nick/channel in db
   (mongo/connect!)
-  (mongo/remove mod-name {:nick (s/lower-case nick) :channel channel})
-  (mongo/insert mod-name {:nick (s/lower-case nick)
+  (mongo/remove mod-name {:nick (clojure.string/lower-case nick) :channel channel})
+  (mongo/insert mod-name {:nick (clojure.string/lower-case nick)
                           :channel channel
                           :loc loc-info})
   (mongo/disconnect!))
@@ -89,7 +88,9 @@
 (defn get-home [nick channel]
   ;; checks db for hom stored for nick/channel
   (mongo/connect!)
-  (let [place (first (mongo/get-docs mod-name {:nick (s/lower-case nick) :channel channel}))]
+  (let [place (first (mongo/get-docs mod-name
+                                     {:nick (clojure.string/lower-case nick)
+                                      :channel channel}))]
     (mongo/disconnect!)
     place))
 
