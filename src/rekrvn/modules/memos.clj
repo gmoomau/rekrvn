@@ -25,7 +25,7 @@
 
 (defn deliver-memos [[nick channel] reply]
   (dosync
-    (when (@targets (s/lower-case nick))
+    (when (@targets (clojure.string/lower-case nick))
       (let [memo-finder {:to (re-pattern (str "(?i)^" nick "$")) :channel channel}]
         (mongo/connect!)
         (doseq [memo (mongo/get-docs modName memo-finder)]
