@@ -74,7 +74,7 @@
         alert-link (-> weather :alerts first :uri bitly/shorten-link)]
     (str loc
          (when alert-title
-           (str " " lbracket "05" alert-title (char 3) " " alert-link " " rbracket " "))
+           (str " " lbracket "05" alert-title (char 3) " " alert-link " " rbracket))
          " " lbracket  now-str  rbracket " "
          lbracket "Next 24hrs: " hourly-summary " | " lo "°-" hi "°"; | " temp-spark
          (when (> max-rain 0)
