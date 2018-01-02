@@ -18,9 +18,9 @@
     (reply mod-name card-name)))
 
 (defn guess-card-url [[card-name] reply]
-  (let [base-url "http://gatherer.wizards.com/Pages/Card/Details.aspx?name="
-        fixed-name (clojure.string/replace card-name " " "+")]
-  (reply mod-name (str base-url fixed-name))))
+  (let [base-url "http://gatherer.wizards.com/Pages/Search/Default.aspx?name=+["
+        fixed-name (clojure.string/replace card-name " " "]+[")]
+  (reply mod-name (str base-url fixed-name "]"))))
         
 (hub/addListener mod-name #".*(http://gatherer\.wizards\.com/Pages/Card/Details\.aspx\?\S+)\s*" mtg)
 (hub/addListener mod-name #"(?i)^irc.*PRIVMSG \S+ :\.mtg (.+)\s*$" guess-card-url)
