@@ -3,13 +3,13 @@
 
 (def mod-name "factcheck")
 
-(def sources [["wikipedia" (range 2001 2017)]
-              ["the onion" (range 1998 2017)]
-              ["google" (range 1998 2017)]
+(def sources [["wikipedia" (range 2001 2018)]
+              ["the onion" (range 1998 2018)]
+              ["google" (range 1998 2018)]
               ["nostradamus" (range 1503 1566)]
-              ["new york times" (range 1851 2017)]
-              ["washington post" (range 1877 2017)]
-              ["lmgtfy" (range 2008 2017)]
+              ["new york times" (range 1851 2018)]
+              ["washington post" (range 1877 2018)]
+              ["lmgtfy" (range 2008 2018)]
               ["the bible" (range 50 100)]
               ["dead sea scrolls" (range -408 318)]
 
