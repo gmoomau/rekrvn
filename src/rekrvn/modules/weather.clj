@@ -20,7 +20,7 @@
 (defn str-to-loc [location]
   (->> location
     url-encode
-    (str "http://autocomplete.wunderground.com/aq?h=0&format=json&query=")
+    (str "http://autocomplete.wunderground.com/aq?h=0&format=json&exclude=minutely&query=")
     request
     :RESULTS
     first))
@@ -39,7 +39,7 @@
       nil
       weather)))
 
-(def sparks ["_" "▁" "▂" "▃" "▄" "▅" "▆" "▇" "█"]); "_" was removed. add it back?
+(def sparks ["_" "▁" "▂" "▃" "▄" "▅" "▆" "▇" "█"])
 (defn make-sparkline
   ([data] (make-sparkline data (apply min data) (apply max data)))
   ([data low high]
@@ -63,7 +63,7 @@
                        (str " | " humidity "% humidity"))
                      (when (> wind 30)
                        (str " | wind " wind "mph")))
-        hourly (-> weather :hourly :data)
+        hourly (take 24 (-> weather :hourly :data))
         hourly-summary (-> weather :hourly :summary)
         hi (str (char 3) "07" (char 0x200B) (inc (int (apply max (map :temperature hourly)))) (char 3))
         lo (str (char 3) "11" (char 0x200B) (int (apply min (map :temperature hourly))) (char 3))
@@ -76,9 +76,9 @@
          (when alert-title
            (str " " lbracket "05" alert-title (char 3) " " alert-link " " rbracket))
          " " lbracket  now-str  rbracket " "
-         lbracket "Next 24hrs: " hourly-summary " | " lo "°-" hi "°"; | " temp-spark
+         lbracket "Upcoming: " hourly-summary " | " lo "°  " hi "°"; | " temp-spark
          (when (> max-rain 0)
-           (str " | " max-rain "% chance of rain"
+           (str " | " max-rain "% chance of water falling from the sky "
                 (when (>= max-rain 20) (str " " (char 3) "02" rain-spark))))
          rbracket)))
 
