@@ -1,8 +1,10 @@
 (ns rekrvn.modules.factcheck
-  (:require [rekrvn.hub :as hub]))
+  (:require [rekrvn.hub :as hub])
+  (:require [clojure.tools.logging :as log]))
 
 (def mod-name "factcheck")
 
+(def truthiness ["TRUE" "MOSTLY TRUE" "SOMEWHAT TRUE" "MOSTLY FALSE" "FALSE"])
 (def sources [["wikipedia" (range 2001 2018)]
               ["the onion" (range 1998 2018)]
               ["google" (range 1998 2018)]
@@ -16,9 +18,10 @@
               ])
 
 (defn fact-check [_ reply]
-  (let [veracity (rand-nth ["TRUE" "MOSTLY TRUE" "SOMEWHAT TRUE" "MOSTLY FALSE" "FALSE"])
+  (let [veracity (rand-nth truthiness)
         [source years] (rand-nth sources)
         year (rand-nth years)]
+    (log/info "fact checked a fact")
     (reply mod-name (str veracity " (" source ", " year ")"))))
 
 (hub/addListener mod-name #"(?i)^irc.*PRIVMSG \S+ :\.factcheck(?:\s.*)?$" fact-check)

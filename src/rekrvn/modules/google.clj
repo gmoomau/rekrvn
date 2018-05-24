@@ -4,7 +4,8 @@
             [http.async.client.request :refer [url-encode]]
             [rekrvn.config :refer [google-key]]
             [rekrvn.hub :as hub]
-            [rekrvn.modules.twitter :refer [plaintext]]))
+            [rekrvn.modules.twitter :refer [plaintext]]
+            [clojure.tools.logging :as log]))
 
 (def mod-name "google")
 (def query-base (str

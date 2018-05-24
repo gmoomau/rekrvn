@@ -1,6 +1,7 @@
 (ns rekrvn.modules.irc.client
   (:require [rekrvn.config :refer [irc-opts]]
-            [rekrvn.hub :as hub])
+            [rekrvn.hub :as hub]
+            [clojure.tools.logging :as log])
   (:import (java.io BufferedReader InputStreamReader PrintWriter)
            (java.net Socket)))
 
@@ -115,9 +116,10 @@
     (while (not (:exit @conn))
       (while (.ready (:in @conn))
         (let [msg (.readLine (:in @conn))]
-          (println "fromirc" msg)
+          (log/debug "from irc:" msg)
           ;; maintaining connection + internal irc state
           (when (re-find #"^ERROR :Closing Link:" msg)
+            (log/error "irc disconnected" msg)
             (quit conn))
 
           (when (re-find #"^PING" msg)

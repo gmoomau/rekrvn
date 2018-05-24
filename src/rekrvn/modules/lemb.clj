@@ -12,7 +12,4 @@
       (let [meat (clojure.string/replace (c/string response) "\n" " ")]
         (reply mod-name meat)))))
 
-(defn lemb [_ reply]
-  (reply mod-name (get-meat)))
-
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.lemb$" get-meat)

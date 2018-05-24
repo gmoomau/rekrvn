@@ -1,5 +1,6 @@
 (ns rekrvn.hub
-  (:require [rekrvn.config]))
+  (:require [rekrvn.config])
+  (:require [clojure.tools.logging :as log]))
 
 (def listeners (ref [])) ;; list of triggers
 
@@ -11,18 +12,22 @@
    (doseq [{matcher :matcher act-fn :action mod-name :mod} @listeners]
      (when (filter-fn mod-name)
        (doseq [results (re-seq matcher content)]
+         (log/debug "running module" mod-name "with arguments" (rest results))
          (try
            (act-fn (rest results) reply)
-           (catch Exception e (println (str "Caught exception: " e (": ") (.getMessage e))))))))))
+           (catch Exception e
+             (log/error e "exception running" mod-name))))))))
 
 (defn addListener [modname matcher action]
+  (log/info "adding listener for" modname)
   (dosync (alter listeners conj {:mod modname :matcher matcher :action action})))
 
 (defn modload [modId]
   (let [module (symbol (str "rekrvn.modules." modId))]
+    (log/info "loading module" modId)
     (try
       (require module :reload)
-      (catch Exception e (println (str "Caught exception: " (.getMessage e)))))))
+      (catch Exception e (log/error e "exception while loading module" modId)))))
 
 (defn reload [modId]
   (do

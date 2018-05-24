@@ -1,12 +1,15 @@
 (ns rekrvn.modules.caps
   (:require [rekrvn.hub :as hub]
-            [rekrvn.modules.mongo :as mongo]))
+            [rekrvn.modules.mongo :as mongo]
+            [clojure.tools.logging :as log]))
 
 (def modName "caps")
 
 (defn caps [[channel line] reply]
+  (log/info "somebody shouted" line "in" channel)
   (if-let [[_ term] (re-matches #"(?:STOP|QUIT) (?:YELLING|SHOUTING) (.+)" line)]
     (do
+      (log/info "deleting shout" term)
       (mongo/connect!)
       (if (= 0 (.getN (mongo/remove modName {:channel channel :text term})))
         (reply modName "I CAN'T!")
@@ -14,6 +17,7 @@
       (mongo/disconnect!))
     (when (> (count line) 3)
       (do
+        (log/info "saving shout" line)
         (mongo/connect!)
         (let [new-doc {:text line :channel channel}
               finder {:channel channel}
