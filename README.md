@@ -1,6 +1,6 @@
 rekrvn
 ==============
-A bot framework with modules.
+a bot
 
 Usage
 --------------
