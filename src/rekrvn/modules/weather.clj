@@ -5,7 +5,8 @@
             [rekrvn.config :refer [weather-key]]
             [rekrvn.hub :as hub]
             [rekrvn.modules.bitly :as bitly]
-            [rekrvn.modules.mongo :as mongo]))
+            [rekrvn.modules.mongo :as mongo]
+            [clojure.tools.logging :as log]))
 
 (def mod-name "weather")
 
@@ -32,7 +33,7 @@
   (let [query (str
                 "https://api.forecast.io/forecast/"
                 weather-key "/"
-                (latlon loc-info))
+                (latlon loc-info)) ; for copy/pasting: 39.0000,-77.0999
                 ;"," (quot (System/currentTimeMillis) 1000))
         weather (request query)]
     (if (:error weather)
@@ -50,6 +51,13 @@
       heights (map #(inc (int (Math/floor (/ (- % low 0.001) step)))) data)]
       (apply str (map sparks heights)))))
 
+(defn precip-type [types]
+  (when (> (count types) 0)
+    (->> types
+      frequencies
+      (apply max-key val); this threw for some reason
+      ; clojure.lang.ArityException: Wrong number of args (1) passed to: core/max-key
+      first)))
 
 (defn make-forecast [location weather]
   (let [lbracket (str (char 3) "14[" (char 3))
@@ -69,16 +77,20 @@
         lo (str (char 3) "11" (char 0x200B) (int (apply min (map :temperature hourly))) (char 3))
         ;temp-spark (make-sparkline (map :temperature hourly))
         max-rain (int (* 100 (apply max (map :precipProbability hourly))))
+        rain-type (precip-type (remove nil? (map :precipType hourly)))
         rain-spark (make-sparkline (map :precipProbability hourly) 0 1)
         alert-title (-> weather :alerts first :title)
-        alert-link (-> weather :alerts first :uri bitly/shorten-link)]
+        alert-link (-> weather :alerts first :uri bitly/shorten-link)
+        moon-phase (-> weather :daily :data first :moonPhase)]
     (str loc
          (when alert-title
            (str " " lbracket "05" alert-title (char 3) " " alert-link " " rbracket))
+         (when (< 0.45 moon-phase 0.55)
+           (str " " lbracket (char 3) "08Warning: werewolves" (char 3) rbracket))
          " " lbracket  now-str  rbracket " "
          lbracket "Upcoming: " hourly-summary " | " lo "°  " hi "°"; | " temp-spark
          (when (> max-rain 0)
-           (str " | " max-rain "% chance of water falling from the sky "
+           (str " | " max-rain "% chance of " rain-type
                 (when (>= max-rain 20) (str " " (char 3) "02" rain-spark))))
          rbracket)))
 
@@ -133,4 +145,3 @@
 (hub/addListener mod-name #"^.*PRIVMSG (\S+) :\.w(?:eather)?\s+@(.+?)\s*$" check-forecast)
 ;; .w location
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG (\S+) :\.w(?:eather)?\s+([^@].+)\s*$" forecast-for-location)
-
