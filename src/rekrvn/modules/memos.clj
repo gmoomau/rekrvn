@@ -11,14 +11,19 @@
 
 (defn niceify [memo]
   ;; :sender :channel :recip :msg
-  (str (:to memo) ", " (:from memo) " says: " (:msg memo)))
+  (str (when-let [timestamp (:time memo)] (str "(" timestamp ") "))
+       (:to memo) ", " (:from memo) " says: " (:msg memo)))
 
 
 (defn add-memo [[sender channel recip msg] reply]
   (dosync
     (alter targets conj (clojure.string/lower-case recip))
     (mongo/connect!)
-    (mongo/insert modName {:from sender :to recip :channel channel :msg msg})
+    (mongo/insert modName {:from sender
+                           :to recip
+                           :channel channel
+                           :msg msg
+                           :time (str (new java.util.Date))})
     (mongo/disconnect!)
     (reply modName "memo'd")))
 
