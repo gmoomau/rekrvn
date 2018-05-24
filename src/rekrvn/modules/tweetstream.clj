@@ -4,7 +4,8 @@
             [rekrvn.hub :as hub]
             [rekrvn.modules.twitter :as util]
             [twitter-streaming-client.core :as twclient]
-            [twitter.oauth :as oauth]))
+            [twitter.oauth :as oauth]
+            [clojure.tools.logging :as log]))
 
 (def mod-name "tweetstream")
 
@@ -16,8 +17,10 @@
 ;; TODO: multi-channel support
 (defn announce-tweet [tweet]
   (let [announcement (str mod-name " forirc " twitter-stream-channel " " (util/niceify tweet))]
-    (println "announcing tweet: " announcement)
-    (hub/broadcast announcement)))
+    (log/info "printing tweet to" twitter-stream-channel ":" announcement)
+    (hub/broadcast announcement))
+  (when-let [quoted (:quoted_status tweet)]
+    (hub/broadcast (str mod-name " forirc " twitter-stream-channel " " (util/niceify quoted)))))
 
 (def stream (twclient/create-twitter-stream twitter.api.streaming/user-stream
                                            :oauth-creds my-creds))
@@ -25,8 +28,8 @@
 (defn handle-tweets [stream]
   (while true
     (doseq [tweet (:tweet (twclient/retrieve-queues stream))]
-        (println "got tweet: " tweet)
-        (announce-tweet tweet))
+      (log/info "got tweet:" tweet)
+      (announce-tweet tweet))
     (Thread/sleep 1000)))
 
 (twclient/start-twitter-stream stream)
