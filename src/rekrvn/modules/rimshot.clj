@@ -10,6 +10,7 @@
 (def snowman "☃")
 (def tableflip "(╯°□°)╯︵ ┻━┻")
 (def surf "🏄")
+(def corn "🌽")
 
 (hub/addListener modName #"^irc.*PRIVMSG \S+ :(\.(?:instant)?rimshot)$" (fn [_ refn] (refn modName rimShot)))
 (hub/addListener modName #"^irc.*PRIVMSG \S+ :(\.(?:sad)?trombone)$" (fn [_ refn] (refn modName trombone)))
@@ -17,4 +18,4 @@
 (hub/addListener modName #"(?i)^irc.*PRIVMSG \S+ :(\.snowman)$" (fn [_ refn] (refn modName snowman)))
 (hub/addListener modName #"(?i)^irc.*PRIVMSG \S+ :(\.flip)$" (fn [_ refn] (refn modName tableflip)))
 (hub/addListener modName #"(?i)^irc.*PRIVMSG \S+ :(\.surf)$" (fn [_ refn] (refn modName surf)))
-
+(hub/addListener modName #"(?i)^irc.*PRIVMSG \S+ :(\.corn)$" (fn [_ refn] (refn modName corn)))
