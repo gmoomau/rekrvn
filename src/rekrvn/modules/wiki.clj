@@ -14,72 +14,47 @@
                   "&alt=json"
                   "&q="))
 
-(def sentence-regex
-  #"(?x)
-      ^(
-        (?>
-          (?>
-            (?>ad|bce?|eg|ex|ie|
-               vs|st|St|Inc|Mrs?|[DJS]r)\.|  # don't stop on vs.,ie., or similar
-            \d++(?>\.\d++)++|           # ex. 1.04 100.3 1.0.3.2
-            (?>[^\s^\.]\.)++|           # ex. a.b.c.d., u.s.a.
-            \([^\)]*+\)|                # anything inside parentheses
-            [^\s^\.]++)                 # anything without a .
-          ,?\s)*+                       # this was all <word><space>*
-        [^\s^\.]++                      # the last word in the sentence
-        \.\"?)                          # end on a period with optional quote
-      (?>\s|$)                          # the period must either end the
-                                        # paragraph or be followed by a space
-    ")
-
-(defn web-request [url]
+(defn- web-request [url]
   (with-open [client (c/create-client)]
     (let [response (c/GET client url)]
       (c/await response)
       (c/string response))))
 
-(defn is-wiki-link? [result]
+(defn- is-wiki-link? [result]
   (= "en.wikipedia.org" (:displayLink result)))
 
-(defn choose-link [results]
+(defn- choose-link [results]
   (first (filter is-wiki-link? (:items results))))
 
-(defn get-wiki-link [terms]
+(defn- get-wiki-link [terms]
   (let [query (str query-base (url-encode (str "wiki " terms)))
         results (web-request query)
         parsed (parse-string results true)
         wiki (choose-link parsed)]
       (when wiki (clojure.string/replace (:link wiki) #"http:" "https:"))))
 
-(defn strip-formatting [raw]
-  (-> raw
-    (clojure.string/replace #"&amp;" "&")
-    (clojure.string/replace #"<[^>]+>" "")
-    (clojure.string/replace #"\[\d+\]" "")))
+(defn- get-title [wiki-link]
+  (when-let [title (re-find #"en.wikipedia.org/wiki/(\S+)" wiki-link)]
+    (second title)))
 
-(defn get-blurb [url]
-  (let [tree (h/html-resource (java.net.URL. url))
-        paras (h/select tree [:#mw-content-text :p])
-        disambig (h/select tree [:#disambigbox])
-        html-ps (map (comp strip-formatting (partial apply str) h/emit*) paras)
-        para (first (filter not-empty html-ps))
-        blurb (second (re-find sentence-regex para))]
-    (if (not-empty blurb)
-      blurb
-      (if (not-empty disambig)
-        "could mean a lot of things" ; it's a disambiguation page
-        "couldn't figure out the description")))) ; couldn't find a blurb
+(defn- get-blurb [wiki-title]
+  (let [wiki-link (str "https://en.wikipedia.org/api/rest_v1/page/summary/" wiki-title)
+        results (web-request wiki-link)
+        parsed (parse-string results true)]
+    (:extract parsed)))
 
-(defn trigger-from-link [[link mobile] reply]
+(defn wiki [[search-terms] reply]
+  (let [link (get-wiki-link search-terms)
+        wiki-title (get-title link)]
+    (if wiki-title
+      (reply mod-name (str link " - " (get-blurb wiki-title)))
+      (reply mod-name "no wiki link found"))))
+
+(defn trigger-from-link [[link mobile title] reply]
   (if mobile
     (let [regular-link (clojure.string/replace link #"en\.m\." "en.")]
-      (reply mod-name (str regular-link " " (get-blurb link))))
-    (reply mod-name (get-blurb link))))
-
-(defn wiki [[terms] reply]
-  (if-let [link (get-wiki-link terms)]
-    (reply mod-name (str link " - " (get-blurb link)))
-    (reply mod-name "no wiki links found")))
+      (reply mod-name (str regular-link " - " (get-blurb title))))
+    (reply mod-name (get-blurb title))))
 
 (hub/addListener mod-name #"^irc.*PRIVMSG \S+ :\.wiki (.+)$" wiki)
-(hub/addListener mod-name #"(https?://en\.(m\.)?wikipedia\.org/wiki/\S+)" trigger-from-link)
+(hub/addListener mod-name #"(https?://en\.(m\.)?wikipedia\.org/wiki/(\S+))" trigger-from-link)
