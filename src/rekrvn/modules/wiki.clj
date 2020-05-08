@@ -45,7 +45,7 @@
 
 (defn wiki [[search-terms] reply]
   (let [link (get-wiki-link search-terms)
-        wiki-title (get-title link)]
+        wiki-title (when link (get-title link))]
     (if wiki-title
       (reply mod-name (str link " - " (get-blurb wiki-title)))
       (reply mod-name "no wiki link found"))))

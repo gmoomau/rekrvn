@@ -2,6 +2,7 @@
   (:require [cheshire.core :refer [parse-string]]
             [http.async.client :as c]
             [rekrvn.hub :as hub]
+            [rekrvn.config :refer [iex-key]]
             [clojure.tools.logging :as log]))
 
 (def mod-name "stocks")
@@ -21,10 +22,10 @@
       (c/await response)
       (c/string response))))
 
-(def base-url "https://api.iextrading.com/1.0/stock/")
+(def base-url "https://cloud.iexapis.com/stable/stock/")
 (defn get-price [[stock-symbol] reply]
-  (let [earlier (web-request (str base-url stock-symbol "/chart/5d"))
-        today (web-request (str base-url stock-symbol "/quote"))]
+  (let [earlier (web-request (str base-url stock-symbol "/chart/5d?token=" iex-key))
+        today (web-request (str base-url stock-symbol "/quote?token=" iex-key))]
     (if-not (= today "Unknown symbol")
       (let [earlier-results (parse-string earlier true)
             today-results (parse-string today true)

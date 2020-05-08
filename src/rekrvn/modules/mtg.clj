@@ -5,12 +5,6 @@
 
 (def mod-name "mtg")
 
-(defn web-requst [url]
-  (with-open [client (c/create-client)]
-    (let [response (c/GET client url)]
-      (c/await response)
-      (c/string response))))
-
 (defn mtg [[url] reply]
   (let [tree (h/html-resource (java.net.URL. url))
         card-name-html (h/select tree [:.contentTitle :span])
