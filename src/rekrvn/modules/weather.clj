@@ -4,7 +4,6 @@
             [http.async.client.request :refer [url-encode]]
             [rekrvn.config :refer [weather-key]]
             [rekrvn.hub :as hub]
-            [rekrvn.modules.bitly :as bitly]
             [rekrvn.modules.mongo :as mongo]
             [clojure.tools.logging :as log]))
 
@@ -80,11 +79,10 @@
         rain-type (precip-type (remove nil? (map :precipType hourly)))
         rain-spark (make-sparkline (map :precipProbability hourly) 0 1)
         alert-title (-> weather :alerts first :title)
-        alert-link (-> weather :alerts first :uri bitly/shorten-link)
         moon-phase (-> weather :daily :data first :moonPhase)]
     (str loc
          (when alert-title
-           (str " " lbracket "05" alert-title (char 3) " " alert-link " " rbracket))
+           (str " " lbracket "05" alert-title (char 3) rbracket))
          (when (< 0.45 moon-phase 0.55)
            (str " " lbracket (char 3) "08Warning: werewolves" (char 3) rbracket))
          " " lbracket  now-str  rbracket " "
