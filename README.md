@@ -1,12 +1,12 @@
 rekrvn
 ==============
-a bot
+a bot. pretty buggy.
 
 Usage
 --------------
 list modules you want enabled in config.clj
-eg. "example" will add modules/example.clj
-    "irc.client" will add modules/irc/client.clj
+eg. "example" will enable modules/example.clj
+    "irc.client" will enable modules/irc/client.clj
 
 See complete example in config.clj.example
 
@@ -29,9 +29,3 @@ subscribe to events/messages via (rekrvn.hub/addListener modname matcher actFn)
 - actFn is the function to be called on matching publications. As arguments, it takes a list containing the parenthesized groups in matcher and a replyFn.
 
 See modules/example.clj for examples.
-
-
-
-Copyright (C) 2012
-
-License: MIT
