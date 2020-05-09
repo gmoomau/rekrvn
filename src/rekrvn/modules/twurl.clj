@@ -2,21 +2,18 @@
   (:require [rekrvn.config :refer [twitter-creds]]
             [rekrvn.hub :as hub]
             [rekrvn.modules.twitter :as util]
-            [twitter.api.restful :refer :all]
+            [twitter.api.restful :refer [statuses-show-id]]
             [twitter.oauth :refer :all]
             [clojure.tools.logging :as log]))
 
 (def mod-name "twurl")
+;; see docs at https://developer.twitter.com/en/docs/tweets/post-and-engage/api-reference/get-statuses-show-id .
 
-(def my-creds (make-oauth-creds (:consumer-key twitter-creds)
-                                (:consumer-secret twitter-creds)
-                                (:user-token twitter-creds)
-                                (:user-secret twitter-creds)))
 (defn get-tweet [id]
   (try
     ;; throws an exception if the tweet is protected or deleted
-    (:body (statuses-show-id :oauth-creds my-creds
-                             :params {:id id :include_entities true :tweet_mode "extended"}))
+    (:body (statuses-show-id :oauth-creds util/my-creds
+                             :params {:id id :include_entities true}))
     (catch Exception e
       (log/error e "Couldn't get tweet" id))))
 

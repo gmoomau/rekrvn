@@ -1,6 +1,17 @@
 (ns rekrvn.modules.twitter
-  (:require [clojure.tools.logging :as log]))
-;; tweet formatter
+  (:require [clojure.tools.logging :as log]
+            [rekrvn.config :refer [twitter-creds]]
+            [twitter.oauth :refer [make-oauth-creds]]))
+
+;(def my-creds (make-oauth-creds (:consumer-key twitter-creds)
+;                                (:consumer-secret twitter-creds)
+;                                (:user-token twitter-creds)
+;                                (:user-secret twitter-creds)))
+(def my-creds
+  (let [grab-info (juxt :consumer-key :consumer-secret :user-token :user-secret)]
+    (apply make-oauth-creds (grab-info twitter-creds))))
+
+;;;;;;;;;;;;;; tweet formatting stuff below this point ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- expand-single-link [text short-url long-url]
   (if long-url
@@ -28,13 +39,13 @@
 (defn full-tweet-text [tweet]
   ; twitter truncates some tweets. undo that.
   (cond
-    (:extended_tweet tweet) (-> tweet :extended_tweet :full_text)
-    (:retweeted_status tweet) (when-let [rtd_name (re-find #"RT @[^:]+: " (or
-                                                                            (:text tweet)
-                                                                            (:full_text tweet)))]
-                                (str rtd_name (full-tweet-text (:retweeted_status tweet))))
-    (:full_text tweet) (:full_text tweet)
-    :else (:text tweet)))
+    (:extended_tweet tweet)     (-> tweet :extended_tweet :full_text)
+    (:retweeted_status tweet)   (when-let [rtd_name
+                                           (re-find #"RT @[^:]+: "
+                                                    (or (:text tweet) (:full_text tweet)))]
+                                  (str rtd_name (full-tweet-text (:retweeted_status tweet))))
+    (:full_text tweet)          (:full_text tweet)
+    :else                       (:text tweet)))
 
 (defn niceify [tweet]
   (when tweet
