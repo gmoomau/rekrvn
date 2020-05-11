@@ -28,7 +28,7 @@
     (str (:snippet top) " - " (:link top))))
 
 (defn search-url [search-str]
-  (str "http://www.google.com/search?q=" (url-encode search-str)))
+  (str "https://www.google.com/search?q=" (url-encode search-str)))
 
 (defn google [[search-str] reply]
   (let [all-results (search-url search-str)
