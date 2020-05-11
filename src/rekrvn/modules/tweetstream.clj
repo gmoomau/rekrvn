@@ -33,7 +33,7 @@
     (log/info "last seen: " last-seen)
     (let [tweets (:body (statuses-home-timeline
                               :oauth-creds util/my-creds
-                              :params {:since_id last-seen :include_entities true}))
+                              :params {:since_id last-seen :include_entities true :tweet_mode "extended"}))
           new-last (or (-> tweets first :id) last-seen)]
           ; ^ assumes the list is reverse chronological order
           ;   the (or ..) is in case tweets is empty or something

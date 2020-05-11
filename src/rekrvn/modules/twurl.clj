@@ -13,7 +13,7 @@
   (try
     ;; throws an exception if the tweet is protected or deleted
     (:body (statuses-show-id :oauth-creds util/my-creds
-                             :params {:id id :include_entities true}))
+                             :params {:id id :include_entities true :tweet_mode "extended"}))
     (catch Exception e
       (log/error e "Couldn't get tweet" id))))
 
