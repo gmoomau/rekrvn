@@ -3,7 +3,6 @@
             [rekrvn.hub :as hub]
             [rekrvn.modules.twitter :as util]
             [twitter.api.restful :refer :all]
-            [twitter.oauth :as oauth]
             [clojure.tools.logging :as log]))
 
 (def mod-name "tweetstream")
@@ -24,21 +23,18 @@
                                    :include_entities true}))
 
 ;; TODO handle "Twitter responded to request with error 88: Rate limit exceeded. Next reset at 1589021843 (UTC epoch seconds)"
-;; wait til then
-;; log an error
-;; alert?
-;;
+;; wait til then, log an error, alert somewhere
+
 (defn stream []
-  (loop [last-seen 1258952255698546694] ; TODO actually store and remember this
+  (loop [last-seen {:count 3}] ; the first time through there's no last seen, so just grab 3 tweets
     (log/info "last seen: " last-seen)
-    (let [tweets (:body (statuses-home-timeline
-                              :oauth-creds util/my-creds
-                              :params {:since_id last-seen :include_entities true :tweet_mode "extended"}))
-          new-last (or (-> tweets first :id) last-seen)]
-          ; ^ assumes the list is reverse chronological order
-          ;   the (or ..) is in case tweets is empty or something
+    (let [tweets (:body (statuses-home-timeline ; returns tweets newest first
+                          :oauth-creds util/my-creds
+                          :params (merge {:include_entities true :tweet_mode "extended"} last-seen)))
+          newest-seen (-> tweets first :id)
+          new-last (if newest-seen {:since_id newest-seen} last-seen)]
       (log/info "first tweet: " (-> tweets first :text))
-      (doseq [_ tweets] (announce-tweet _))
+      (doseq [_ (reverse tweets)] (announce-tweet _))
       (Thread/sleep (* 70 1000)) ;; must be above 60sec. limit is 15req/15min
       (recur new-last))))
 
