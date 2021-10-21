@@ -1,5 +1,5 @@
-(defproject rekrvn "0.1.0"
-  :description "irc bot framework"
+(defproject rekrvn "0.2.0"
+  :description "irc bot"
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [cheshire "5.5.0"]
                  [enlive "1.1.6"]
