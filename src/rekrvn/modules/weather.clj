@@ -2,7 +2,7 @@
   (:require [cheshire.core :refer [parse-string]]
             [http.async.client :as http]
             [http.async.client.request :refer [url-encode]]
-            [rekrvn.config :refer [weather-key]]
+            [rekrvn.config :refer [weather-key version]]
             [rekrvn.hub :as hub]
             [rekrvn.modules.mongo :as mongo]
             [clojure.tools.logging :as log]))
@@ -12,7 +12,8 @@
 (defn request [url]
   (try
     (with-open [client (http/create-client)]
-      (let [response (http/GET client url)]
+      (let [user-agent {:User-Agent (str "rekrvn/" version)} ; UA required by nominatim api
+            response (http/GET client url :headers user-agent)]
         (http/await response)
         (parse-string (http/string response) true)))
     (catch Exception e (println (str "Caught exception: " (.getMessage e))) nil)))
@@ -20,9 +21,8 @@
 (defn str-to-loc [location]
   (->> location
     url-encode
-    (str "http://autocomplete.wunderground.com/aq?h=0&format=json&exclude=minutely&query=")
+    (str "https://nominatim.openstreetmap.org/search.php?limit=1&accept-language=en-US&format=jsonv2&q=")
     request
-    :RESULTS
     first))
 
 (defn latlon [loc-info]
@@ -61,7 +61,7 @@
 (defn make-forecast [location weather]
   (let [lbracket (str (char 3) "14[" (char 3))
         rbracket (str (char 3) "14]" (char 3))
-        loc (:name location)
+        loc (:display_name location)
         now (:currently weather)
         humidity (int (* 100 (:humidity now)))
         wind (int (:windSpeed now))
@@ -132,7 +132,7 @@
       (do
         (store-home nick channel loc-info)
         (reply mod-name (make-forecast loc-info weather)))
-      (reply mod-name (str "Can't get weather for " (:name loc-info))))
+      (reply mod-name (str "Can't get weather for " (:display_name loc-info))))
     (reply mod-name (str "Can't find location: " location))))
 
 ;; TODO: refactor because a lot of work is duplicated
