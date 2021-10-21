@@ -26,7 +26,7 @@
 (defn get-price [[stock-symbol] reply]
   (let [earlier (web-request (str base-url stock-symbol "/chart/5d?token=" iex-key))
         today (web-request (str base-url stock-symbol "/quote?token=" iex-key))]
-    (if-not (= today "Unknown symbol")
+    (if-not (or (#{"[]" "Unknown symbol"} earlier) (#{"Not found" "Unknown symbol"} today))
       (let [earlier-results (parse-string earlier true)
             today-results (parse-string today true)
             current-price (float (:latestPrice today-results))
