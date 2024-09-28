@@ -1,11 +1,12 @@
-(defproject rekrvn "0.2.0"
+(defproject rekrvn "0.3.0"
   :description "irc bot"
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.11.0"]
                  [cheshire "5.5.0"]
                  [enlive "1.1.6"]
-                 [twitter-api "1.8.0"]
                  [http.async.client "1.2.0"]
-                 [com.novemberain/monger "1.4.1"]
+
+                 [com.github.seancorfield/next.jdbc "1.3.939"]
+                 [org.xerial/sqlite-jdbc "3.43.0.0"]
 
                  [org.clojure/tools.logging "0.3.1"]
                  [ch.qos.logback/logback-classic "1.2.1"]]

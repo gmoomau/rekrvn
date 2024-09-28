@@ -4,7 +4,7 @@
             [http.async.client.request :refer [url-encode]]
             [rekrvn.config :refer [weather-key version]]
             [rekrvn.hub :as hub]
-            [rekrvn.modules.mongo :as mongo]
+            [rekrvn.modules.db :as db]
             [clojure.tools.logging :as log]))
 
 (def mod-name "weather")
@@ -29,15 +29,19 @@
   (str (:lat loc-info) "," (:lon loc-info)))
 
 (defn get-weather [loc-info]
-  (let [query (str
-                "https://api.forecast.io/forecast/"
-                weather-key "/"
-                (latlon loc-info)) ; for copy/pasting: 39.0000,-77.0999
-                ;"," (quot (System/currentTimeMillis) 1000))
-        weather (request query)]
-    (if (:error weather)
-      nil
-      weather)))
+  (try
+    (let [query (str
+                  "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/"
+                  loc-info
+                  "?unitGroup=us&key="
+                  weather-key
+                  "&contentType=json")
+          weather (request query)]
+      (if (:error weather)
+        nil
+        weather))
+    (catch Exception e (log/error "error getting weather for" loc-info " " e) nil))
+  )
 
 (def sparks ["_" "▁" "▂" "▃" "▄" "▅" "▆" "▇" "█"])
 (defn make-sparkline
@@ -50,75 +54,62 @@
       heights (map #(inc (int (Math/floor (/ (- % low 0.001) step)))) data)]
       (apply str (map sparks heights)))))
 
-(defn precip-type [types]
-  (when (> (count types) 0)
-    (->> types
-      frequencies
-      (apply max-key val); this threw for some reason
-      ; clojure.lang.ArityException: Wrong number of args (1) passed to: core/max-key
-      first)))
-
 (defn make-forecast [location weather]
   (let [lbracket (str (char 3) "14[" (char 3))
         rbracket (str (char 3) "14]" (char 3))
-        loc (:display_name location)
-        now (:currently weather)
-        humidity (int (* 100 (:humidity now)))
-        wind (int (:windSpeed now))
-        now-str (str "Now: " (:summary now) " | " (:temperature now) "°F"
+        loc (:resolvedAddress weather)
+        today (-> weather :days first)
+        humidity (-> today :humidity int)
+        wind (-> today :windgust int)
+        today-str (str "Now: " (:description today) " | " (:temp today) "°F"
                      (when (or (< humidity 30) (> humidity 65))
                        (str " | " humidity "% humidity"))
                      (when (> wind 30)
                        (str " | wind " wind "mph")))
-        hourly (take 24 (-> weather :hourly :data))
-        hourly-summary (-> weather :hourly :summary)
-        hi (str (char 3) "07" (char 0x200B) (inc (int (apply max (map :temperature hourly)))) (char 3))
-        lo (str (char 3) "11" (char 0x200B) (int (apply min (map :temperature hourly))) (char 3))
+        ;hourly (take 24 (-> weather :hourly :data))
+        ;hourly-summary (-> weather :hourly :summary)
+        hi (str (char 3) "07" (char 0x200B) (-> today :tempmax int inc) (char 3))
+        lo (str (char 3) "11" (char 0x200B) (-> today :tempmin int) (char 3))
         ;temp-spark (make-sparkline (map :temperature hourly))
-        max-rain (int (* 100 (apply max (map :precipProbability hourly))))
-        rain-type (precip-type (remove nil? (map :precipType hourly)))
-        rain-spark (make-sparkline (map :precipProbability hourly) 0 1)
-        alert-title (-> weather :alerts first :title)
-        moon-phase (-> weather :daily :data first :moonPhase)]
+        ;rain-chance (int (* 100 (apply max (map :precipProbability hourly))))
+        rain-chance (-> today :precipprob int)
+        rain-type (-> today :preciptype first)
+        ;rain-spark (make-sparkline (map :precipProbability hourly) 0 1)
+        alert (-> weather :alerts first :event)
+        moon-phase (:moonphase today)]
     (str loc
-         (when alert-title
-           (str " " lbracket "05" alert-title (char 3) rbracket))
+         (when alert
+           (str " " lbracket "05" alert (char 3) rbracket))
          (when (< 0.45 moon-phase 0.55)
            (str " " lbracket (char 3) "08Warning: werewolves" (char 3) rbracket))
-         " " lbracket  now-str  rbracket " "
-         lbracket "Upcoming: " hourly-summary " | " lo "°  " hi "°"; | " temp-spark
-         (when (> max-rain 0)
-           (str " | " max-rain "% chance of " rain-type
-                (when (>= max-rain 20) (str " " (char 3) "02" rain-spark))))
+         " " lbracket  today-str  rbracket " "
+         ;lbracket "Upcoming: " hourly-summary " | " lo "°  " hi "°"; | " temp-spark
+         lbracket "Today | " lo "°  " hi "°"
+         (when (and rain-type (> rain-chance 0))
+           (str " | " rain-chance "% chance of " rain-type
+               ; (when (>= rain-chance 20) (str " " (char 3) "02" rain-spark))
+                ))
          rbracket)))
 
-(defn store-home [nick channel loc-info]
-  ;; saves home for nick/channel in db
-  (mongo/connect!)
-  (mongo/remove mod-name {:nick (clojure.string/lower-case nick) :channel channel})
-  (mongo/insert mod-name {:nick (clojure.string/lower-case nick)
-                          :channel channel
-                          :loc loc-info})
-  (mongo/disconnect!))
+(defn store-home [nick channel location]
+  (db/remove! mod-name {:nick (clojure.string/lower-case nick) :channel channel})
+  (db/insert! mod-name {:nick (clojure.string/lower-case nick)
+                        :channel channel
+                        :location location}))
 
 (defn get-home [nick channel]
-  ;; checks db for hom stored for nick/channel
-  (mongo/connect!)
-  (let [place (first (mongo/get-docs mod-name
-                                     {:nick (clojure.string/lower-case nick)
-                                      :channel channel}))]
-    (mongo/disconnect!)
-    place))
+  ;; checks db for home stored for nick/channel
+  (first (db/get-all-docs mod-name {:nick (clojure.string/lower-case nick) :channel channel})))
+
 
 (defn check-forecast [[channel query] reply]
   ;; .w @some string
   ;; does not save anything to the db
   ;; first check if the string is someone's nick. if it is find weather for them
   ;; if not, treat it like a location and find weather
-  (let [place (or (:loc (get-home query channel)) (str-to-loc query))]
-    (if place
-      (when-let [weather (get-weather place)]
-        (reply mod-name (make-forecast place weather)))
+  (let [place (or (:location (get-home query channel)) (url-encode query))]
+    (if-let [weather (get-weather place)]
+      (reply mod-name (make-forecast place weather))
       (reply mod-name (str "Can't find weather for " query)))))
 
 (defn forecast-for-speaker [[nick channel] reply]
@@ -127,15 +118,15 @@
 
 (defn forecast-for-location [[nick channel location] reply]
   ;; .w location
-  (if-let [loc-info (str-to-loc location)]
+  (let [loc-info (url-encode location)]
     (if-let [weather (get-weather loc-info)]
       (do
         (store-home nick channel loc-info)
         (reply mod-name (make-forecast loc-info weather)))
-      (reply mod-name (str "Can't get weather for " (:display_name loc-info))))
-    (reply mod-name (str "Can't find location: " location))))
+      (reply mod-name (str "Can't get weather for " loc-info)))))
 
-;; TODO: refactor because a lot of work is duplicated
+;; TODO: refactor because a lot of work is duplicated <--- is this true still?
+;; TODO: separate out the @ into @ and !
 
 ;; .w
 (hub/addListener mod-name #"^irc :(\S+)!\S+ PRIVMSG (\S+) :\.w(?:eather)?\s*$" forecast-for-speaker)

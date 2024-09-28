@@ -8,6 +8,7 @@
 /.lein-git-deps
 /.lein-repl-history
 /logs
+/data
 /checkouts
 /.lein-deps-sum
 *.swp
