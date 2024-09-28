@@ -9,10 +9,10 @@
               ["nostradamus" (range 1503 1566)]
               ["new york times" (range 1851 2021)]
               ["washington post" (range 1877 2021)]
-               ["lmgtfy" (range 2008 2021)]
+              ["lmgtfy" (range 2008 2021)]
               ["the bible" (range 50 100)]
               ["dead sea scrolls" (range -408 318)]
-
+              ["snopes" (range 1994 2021)]
               ])
 
 (defn fact-check [_ reply]
